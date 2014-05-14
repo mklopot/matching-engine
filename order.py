@@ -68,15 +68,27 @@ class MatchingEngine(object):
         self.preset_price = None
         self.last_price = None
 
+    def __str__(self):
+        return str(self.buy_marketbook) + str(self.sell_marketbook) + str(self.buy_limitbook) + str(self.sell_limitbook)
+
     def get_reference_price(self):
         if self.sell_limitbook:
             return self.sell_limitbook[-1].limit
         elif self.last_price:
             return self.last_price
-        elif preset_price:
+        elif self.preset_price:
             return self.preset_price
         else:
             return None
+
+    def submit_market_buy(self,order):
+        self.buy_marketbook.add(order)
+    def submit_market_sell(self,order):
+        self.sell_marketbook.add(order)
+    def submit_limit_buy(self,order):
+        self.buy_limitbook.add(order)
+    def submit_limit_sell(self,order):
+        self.sell_limitbook.add(order)
  
     def match(self):
         ref_price = self.get_reference_price()
@@ -327,5 +339,24 @@ if __name__ == "__main__":
     market_orderbook2.add(market_order8)
     print market_orderbook2
 
-    #market = MatchingEngine()
-    #market.match()
+    market = MatchingEngine()
+    market.match()
+    print market
+
+    market.submit_limit_buy(limit_order1)
+    market.submit_limit_buy(limit_order2)
+    market.submit_limit_buy(limit_order3)
+    market.submit_limit_sell(limit_order4)
+    market.submit_limit_sell(limit_order5)
+    market.submit_limit_sell(limit_order6)
+
+    market.submit_market_buy(market_order1)
+    market.submit_market_buy(market_order2)
+    market.submit_market_buy(market_order4)
+    market.submit_market_buy(market_order3)
+
+    market.submit_market_sell(market_order5)
+    market.submit_market_sell(market_order6)
+    market.submit_market_sell(market_order7)
+    market.submit_market_sell(market_order8)
+    print market
