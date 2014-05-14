@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
 import datetime
+import copy
 
 class Order(object):
     def __init__(self,user,size=1):
@@ -101,9 +102,9 @@ class MatchingEngine(object):
                     buy_order = self.buy_marketbook.pop()
                     sell_order_orig = self.sell_marketbook[-1]
                     # Update user objects here (account balances, etc)
-                    sell_order_filled = sell_order_orig.copy()
+                    sell_order_filled = copy.copy(sell_order_orig)
                     sell_order_filled.size = buy_order.size
-                    sell_order_orig -= buy_order.size
+                    sell_order_orig.size -= buy_order.size
                     buy_order.status = "Filled"
                     sell_order_filled.status = "Filled Partial"
                     sell_order_orig.status = "Open Partial"
@@ -129,7 +130,7 @@ class MatchingEngine(object):
                     buy_order = self.buy_marketbook[-1]
                     sell_order = self.sell_marketbook.pop()
                     # Update user objects here (account balances, etc)
-                    buy_order_filled = buy_order.copy()
+                    buy_order_filled = copy.copy(buy_order)
                     buy_order_filled.size = sell_order.size
                     buy_order.size -= sell_order.size
                     buy_order_filled.status = "Filled Partial"
@@ -146,9 +147,9 @@ class MatchingEngine(object):
                     buy_order = self.buy_marketbook.pop()
                     sell_order_orig = self.sell_limittbook[-1]
                     # Update user objects here (account balances, etc)
-                    sell_order_filled = sell_order_orig.copy()
+                    sell_order_filled = copy.copy(sell_order_orig)
                     sell_order_filled.size = buy_order.size
-                    sell_order_orig -= buy_order.size
+                    sell_order_orig.size -= buy_order.size
                     buy_order.status = "Filled"
                     sell_order_filled.status = "Filled Partial"
                     sell_order_orig.status = "Open Partial"
@@ -174,7 +175,7 @@ class MatchingEngine(object):
                     buy_order = self.buy_marketbook[-1]
                     sell_order = self.sell_limitbook.pop()
                     # Update user objects here (account balances, etc)
-                    buy_order_filled = buy_order.copy()
+                    buy_order_filled = copy.copy(buy_order)
                     buy_order_filled.size = sell_order.size
                     buy_order.size -= sell_order.size
                     buy_order_filled.status = "Filled Partial"
@@ -192,9 +193,9 @@ class MatchingEngine(object):
                     buy_order = self.buy_limitbook.pop()
                     sell_order_orig = self.sell_limitbook[-1]
                     # Update user objects here (account balances, etc)
-                    sell_order_filled = sell_order_orig.copy()
+                    sell_order_filled = copy.copy(sell_order_orig)
                     sell_order_filled.size = buy_order.size
-                    sell_order_orig -= buy_order.size
+                    sell_order_orig.size -= buy_order.size
                     buy_order.status = "Filled"
                     sell_order_filled.status = "Filled Partial"
                     sell_order_orig.status = "Open Partial"
@@ -220,7 +221,7 @@ class MatchingEngine(object):
                     buy_order = self.buy_limitbook[-1]
                     sell_order = self.sell_limitbook.pop()
                     # Update user objects here (account balances, etc)
-                    buy_order_filled = buy_order.copy()
+                    buy_order_filled = copy.copy(buy_order)
                     buy_order_filled.size = sell_order.size
                     buy_order.size -= sell_order.size
                     buy_order_filled.status = "Filled Partial"
@@ -237,9 +238,9 @@ class MatchingEngine(object):
                     buy_order = self.buy_marketbook.pop()
                     sell_order_orig = self.sell_limittbook[-1]
                     # Update user objects here (account balances, etc)
-                    sell_order_filled = sell_order_orig.copy()
+                    sell_order_filled = copy.copy(sell_order_orig)
                     sell_order_filled.size = buy_order.size
-                    sell_order_orig -= buy_order.size
+                    sell_order_orig.size -= buy_order.size
                     buy_order.status = "Filled"
                     sell_order_filled.status = "Filled Partial"
                     sell_order_orig.status = "Open Partial"
@@ -273,7 +274,7 @@ class MatchingEngine(object):
                     buy_order = self.buy_marketbook[-1]
                     sell_order = self.sell_limitbook.pop()
                     # Update user objects here (account balances, etc)
-                    buy_order_filled = buy_order.copy()
+                    buy_order_filled = copy.copy(buy_order)
                     buy_order_filled.size = sell_order.size
                     buy_order.size -= sell_order.size
                     buy_order_filled.status = "Filled Partial"
@@ -359,4 +360,15 @@ if __name__ == "__main__":
     market.submit_market_sell(market_order6)
     market.submit_market_sell(market_order7)
     market.submit_market_sell(market_order8)
+    
+    print market
+    market.match()
+    print market
+
+    market.match()
+    market.match()
+    market.match()
+#    market.match()
+#    market.match()
+#    market.match()
     print market
