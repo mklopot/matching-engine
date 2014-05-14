@@ -70,7 +70,10 @@ class MatchingEngine(object):
         self.last_price = None
 
     def __str__(self):
-        return str(self.buy_marketbook) + str(self.sell_marketbook) + str(self.buy_limitbook) + str(self.sell_limitbook)
+        f = "Filled Orders:\n"
+        for order in self.filled:
+            f +=  str(order) + "\n"
+        return str(self.buy_marketbook) + str(self.sell_marketbook) + str(self.buy_limitbook) + str(self.sell_limitbook) + f
 
     def get_reference_price(self):
         if self.sell_limitbook:
@@ -145,7 +148,7 @@ class MatchingEngine(object):
             elif self.sell_limitbook:
                 if self.buy_marketbook[-1].size < self.sell_limitbook[-1].size:
                     buy_order = self.buy_marketbook.pop()
-                    sell_order_orig = self.sell_limittbook[-1]
+                    sell_order_orig = self.sell_limitbook[-1]
                     # Update user objects here (account balances, etc)
                     sell_order_filled = copy.copy(sell_order_orig)
                     sell_order_filled.size = buy_order.size
@@ -189,9 +192,9 @@ class MatchingEngine(object):
                     sell_order.filled_by = buy_order_filled
         elif self.buy_limitbook:
             if self.sell_marketbook:
-                if self.buy_marketbook[-1].size < self.sell_marketbook[-1].size:
+                if self.buy_limitbook[-1].size < self.sell_marketbook[-1].size:
                     buy_order = self.buy_limitbook.pop()
-                    sell_order_orig = self.sell_limitbook[-1]
+                    sell_order_orig = self.sell_marketbook[-1]
                     # Update user objects here (account balances, etc)
                     sell_order_filled = copy.copy(sell_order_orig)
                     sell_order_filled.size = buy_order.size
@@ -205,9 +208,9 @@ class MatchingEngine(object):
                     buy_order.filled_at = sell_order_filled.filled_at = int(datetime.datetime.now().strftime('%s%f'))
                     buy_order.filled_by = sell_order_filled
                     sell_order_filled.filled_by = buy_order
-                elif self.buy_marketbook[-1].size == self.sell_marketbook[-1].size:
+                elif self.buy_limitbook[-1].size == self.sell_marketbook[-1].size:
                     buy_order = self.buy_limitbook.pop()
-                    sell_order = self.sell_limitbook.pop()
+                    sell_order = self.sell_marketbook.pop()
                     # Update user objects here (account balances, etc)
                     buy_order.status = "Filled"
                     sell_order.status = "Filled"
@@ -217,9 +220,9 @@ class MatchingEngine(object):
                     buy_order.filled_at = sell_order.filled_at = int(datetime.datetime.now().strftime('%s%f'))
                     buy_order.filled_by = sell_order
                     sell_order.filled_by = buy_order
-                elif self.buy_marketbook[-1].size > self.sell_marketbook[-1].size:
+                elif self.buy_limitbook[-1].size > self.sell_marketbook[-1].size:
                     buy_order = self.buy_limitbook[-1]
-                    sell_order = self.sell_limitbook.pop()
+                    sell_order = self.sell_marketbook.pop()
                     # Update user objects here (account balances, etc)
                     buy_order_filled = copy.copy(buy_order)
                     buy_order_filled.size = sell_order.size
@@ -234,9 +237,9 @@ class MatchingEngine(object):
                     buy_order_filled.filled_by = sell_order
                     sell_order.filled_by = buy_order_filled
             elif self.sell_limitbook and self.buy_limitbook[-1].limit >= self.sell_limitbook[-1].limit:
-                if self.buy_marketbook[-1].size < self.sell_limitbook[-1].size:
-                    buy_order = self.buy_marketbook.pop()
-                    sell_order_orig = self.sell_limittbook[-1]
+                if self.buy_limitbook[-1].size < self.sell_limitbook[-1].size:
+                    buy_order = self.buy_limitbook.pop()
+                    sell_order_orig = self.sell_limitbook[-1]
                     # Update user objects here (account balances, etc)
                     sell_order_filled = copy.copy(sell_order_orig)
                     sell_order_filled.size = buy_order.size
@@ -246,7 +249,7 @@ class MatchingEngine(object):
                     sell_order_orig.status = "Open Partial"
                     self.filled.append(buy_order)
                     self.filled.append(sell_order_filled)
-                    if buy_order.submitted_at <= sell_order.submitted_at:
+                    if buy_order.submitted_time <= sell_order_orig.submitted_time:
                         price = buy_order.limit
                     else:
                         price = sell_order.limit 
@@ -254,15 +257,15 @@ class MatchingEngine(object):
                     buy_order.filled_at = sell_order_filled.filled_at = int(datetime.datetime.now().strftime('%s%f'))
                     buy_order.filled_by = sell_order_filled
                     sell_order_filled.filled_by = buy_order
-                elif self.buy_marketbook[-1].size == self.sell_limitbook[-1].size:
-                    buy_order = self.buy_marketbook.pop()
+                elif self.buy_limitbook[-1].size == self.sell_limitbook[-1].size:
+                    buy_order = self.buy_limitbook.pop()
                     sell_order = self.sell_limitbook.pop()
                     # Update user objects here (account balances, etc)
                     buy_order.status = "Filled"
                     sell_order.status = "Filled"
                     self.filled.append(buy_order)
                     self.filled.append(sell_order)
-                    if buy_order.submitted_at <= sell_order.submitted_at:
+                    if buy_order.submitted_time <= sell_order.submitted_time:
                         price = buy_order.limit
                     else:
                         price = sell_order.limit
@@ -270,8 +273,8 @@ class MatchingEngine(object):
                     buy_order.filled_at = sell_order.filled_at = int(datetime.datetime.now().strftime('%s%f'))
                     buy_order.filled_by = sell_order
                     sell_order.filled_by = buy_order
-                elif self.buy_marketbook[-1].size > self.sell_limitbook[-1].size:
-                    buy_order = self.buy_marketbook[-1]
+                elif self.buy_limitbook[-1].size > self.sell_limitbook[-1].size:
+                    buy_order = self.buy_limitbook[-1]
                     sell_order = self.sell_limitbook.pop()
                     # Update user objects here (account balances, etc)
                     buy_order_filled = copy.copy(buy_order)
@@ -282,7 +285,7 @@ class MatchingEngine(object):
                     sell_order.status = "Filled"
                     self.filled.append(buy_order_filled)
                     self.filled.append(sell_order)
-                    if buy_order.submitted_at <= sell_order.submitted_at:
+                    if buy_order.submitted_time <= sell_order.submitted_time:
                         price = buy_order.limit
                     else:
                         price = sell_order.limit
@@ -300,7 +303,7 @@ if __name__ == "__main__":
     limit_order2 = LimitOrder(user="Boaz",limit=11.2,size=20)
     limit_order3 = LimitOrder(user="Boaz",limit=9,size=20)
 
-    limit_order4 = LimitOrder(user="Jane",limit=15,size=2)
+    limit_order4 = LimitOrder(user="Jane",limit=5,size=2)
     limit_order5 = LimitOrder(user="Kate",limit=15.2,size=2.5)
     limit_order6 = LimitOrder(user="Lisa",limit=16,size=20)
 
@@ -362,13 +365,9 @@ if __name__ == "__main__":
     market.submit_market_sell(market_order8)
     
     print market
-    market.match()
-    print market
+    
+    while True:
+        raw_input("press Enter to step...\n")
+        market.match()
+        print market
 
-    market.match()
-    market.match()
-    market.match()
-#    market.match()
-#    market.match()
-#    market.match()
-    print market
