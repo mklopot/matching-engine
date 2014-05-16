@@ -10,11 +10,12 @@ class Order(object):
         self.created_time = int(datetime.datetime.now().strftime('%s%f'))
         self.submitted_time = False
         self.status = "Not Submitted"
-        self.filled_at = None
+        self.filled_time = None
+        self.filled_price = None
         self.filled_by = None
 
     def __str__(self):
-        return "{0} submitted:{1.submitted_time} for {1.size:12.8f}  created:{1.created_time}  user:{1.user:10} status:{1.status:16}".format(type(self).__name__,self)
+        return "{0:12}                      for {1.size:12.8f}  submitted:{1.submitted_time:16}  user:{1.user:10} status:{1.status:16} price:{1.filled_price:}".format(type(self).__name__,self)
 
 class LimitOrder(Order):
     def __init__(self,user,limit,size=1):
@@ -22,7 +23,7 @@ class LimitOrder(Order):
         self.limit = limit
 
     def __str__(self):
-        return "{0} at {1.limit:6.2f} for {1.size:12.8f}  created:{1.created_time}  submitted:{1.submitted_time}  user:{1.user:10} status:{1.status:16}".format(type(self).__name__,self)
+        return "{0:12} at {1.limit:16.2f}  for {1.size:12.8f}  submitted:{1.submitted_time:16}  user:{1.user:10} status:{1.status:16} price:{1.filled_price:}".format(type(self).__name__,self)
 
 class MarketOrder(Order):
     pass
@@ -113,8 +114,8 @@ class MatchingEngine(object):
                     sell_order_orig.status = "Open Partial"
                     self.filled.append(buy_order)
                     self.filled.append(sell_order_filled)
-                    self.last_price = buy_order.filled_at = sell_order_filled.filled_at = ref_price
-                    buy_order.filled_at = sell_order_filled.filled_at = int(datetime.datetime.now().strftime('%s%f'))
+                    self.last_price = buy_order.filled_price = sell_order_filled.filled_price = ref_price
+                    buy_order.filled_time = sell_order_filled.filled_time = int(datetime.datetime.now().strftime('%s%f'))
                     buy_order.filled_by = sell_order_filled
                     sell_order_filled.filled_by = buy_order                    
                 elif self.buy_marketbook[-1].size == self.sell_marketbook[-1].size:
@@ -125,8 +126,8 @@ class MatchingEngine(object):
                     sell_order.status = "Filled"
                     self.filled.append(buy_order)
                     self.filled.append(sell_order)
-                    self.last_price = buy_order.filled_at = sell_order_filled.filled_at = ref_price
-                    buy_order.filled_at = sell_order.filled_at = int(datetime.datetime.now().strftime('%s%f'))
+                    self.last_price = buy_order.filled_price = sell_order_filled.filled_price = ref_price
+                    buy_order.filled_time = sell_order.filled_time = int(datetime.datetime.now().strftime('%s%f'))
                     buy_order.filled_by = sell_order
                     sell_order.filled_by = buy_order
                 elif self.buy_marketbook[-1].size > self.sell_marketbook[-1].size:
@@ -141,8 +142,8 @@ class MatchingEngine(object):
                     sell_order.status = "Filled"
                     self.filled.append(buy_order_filled)
                     self.filled.append(sell_order)
-                    self.last_price = buy_order_filled.filled_at = sell_order.filled_at = ref_price
-                    buy_order_filled.filled_at = sell_order.filled_at = int(datetime.datetime.now().strftime('%s%f'))
+                    self.last_price = buy_order_filled.filled_price = sell_order.filled_price = ref_price
+                    buy_order_filled.filled_time = sell_order.filled_time = int(datetime.datetime.now().strftime('%s%f'))
                     buy_order_filled.filled_by = sell_order
                     sell_order.filled_by = buy_order_filled
             elif self.sell_limitbook:
@@ -158,8 +159,8 @@ class MatchingEngine(object):
                     sell_order_orig.status = "Open Partial"
                     self.filled.append(buy_order)
                     self.filled.append(sell_order_filled)
-                    self.last_price = buy_order.filled_at = sell_order_filled.filled_at = sell_order.limit
-                    buy_order.filled_at = sell_order_filled.filled_at = int(datetime.datetime.now().strftime('%s%f'))
+                    self.last_price = buy_order.filled_price = sell_order_filled.filled_price = sell_order.limit
+                    buy_order.filled_time = sell_order_filled.filled_time = int(datetime.datetime.now().strftime('%s%f'))
                     buy_order.filled_by = sell_order_filled
                     sell_order_filled.filled_by = buy_order
                 elif self.buy_marketbook[-1].size == self.sell_limitbook[-1].size:
@@ -170,8 +171,8 @@ class MatchingEngine(object):
                     sell_order.status = "Filled"
                     self.filled.append(buy_order)
                     self.filled.append(sell_order)
-                    self.last_price = buy_order.filled_at = sell_order_filled.filled_at = sell_order.limit
-                    buy_order.filled_at = sell_order.filled_at = int(datetime.datetime.now().strftime('%s%f'))
+                    self.last_price = buy_order.filled_price = sell_order_filled.filled_price = sell_order.limit
+                    buy_order.filled_time = sell_order.filled_time = int(datetime.datetime.now().strftime('%s%f'))
                     buy_order.filled_by = sell_order
                     sell_order.filled_by = buy_order
                 elif self.buy_marketbook[-1].size > self.sell_limitbook[-1].size:
@@ -186,8 +187,8 @@ class MatchingEngine(object):
                     sell_order.status = "Filled"
                     self.filled.append(buy_order_filled)
                     self.filled.append(sell_order)
-                    self.last_price = buy_order_filled.filled_at = sell_order.filled_at = sell_order.limit
-                    buy_order_filled.filled_at = sell_order.filled_at = int(datetime.datetime.now().strftime('%s%f'))
+                    self.last_price = buy_order_filled.filled_price = sell_order.filled_price = sell_order.limit
+                    buy_order_filled.filled_time = sell_order.filled_time = int(datetime.datetime.now().strftime('%s%f'))
                     buy_order_filled.filled_by = sell_order
                     sell_order.filled_by = buy_order_filled
         elif self.buy_limitbook:
@@ -204,8 +205,8 @@ class MatchingEngine(object):
                     sell_order_orig.status = "Open Partial"
                     self.filled.append(buy_order)
                     self.filled.append(sell_order_filled)
-                    self.last_price = buy_order.filled_at = sell_order_filled.filled_at = buy_order.limit
-                    buy_order.filled_at = sell_order_filled.filled_at = int(datetime.datetime.now().strftime('%s%f'))
+                    self.last_price = buy_order.filled_price = sell_order_filled.filled_price = buy_order.limit
+                    buy_order.filled_time = sell_order_filled.filled_time = int(datetime.datetime.now().strftime('%s%f'))
                     buy_order.filled_by = sell_order_filled
                     sell_order_filled.filled_by = buy_order
                 elif self.buy_limitbook[-1].size == self.sell_marketbook[-1].size:
@@ -216,8 +217,8 @@ class MatchingEngine(object):
                     sell_order.status = "Filled"
                     self.filled.append(buy_order)
                     self.filled.append(sell_order)
-                    self.last_price = buy_order.filled_at = sell_order_filled.filled_at = buy_order.limit
-                    buy_order.filled_at = sell_order.filled_at = int(datetime.datetime.now().strftime('%s%f'))
+                    self.last_price = buy_order.filled_price = sell_order_filled.filled_price = buy_order.limit
+                    buy_order.filled_time = sell_order.filled_time = int(datetime.datetime.now().strftime('%s%f'))
                     buy_order.filled_by = sell_order
                     sell_order.filled_by = buy_order
                 elif self.buy_limitbook[-1].size > self.sell_marketbook[-1].size:
@@ -232,8 +233,8 @@ class MatchingEngine(object):
                     sell_order.status = "Filled"
                     self.filled.append(buy_order_filled)
                     self.filled.append(sell_order)
-                    self.last_price = buy_order_filled.filled_at = sell_order.filled_at = buy_order.limit
-                    buy_order_filled.filled_at = sell_order.filled_at = int(datetime.datetime.now().strftime('%s%f'))
+                    self.last_price = buy_order_filled.filled_price = sell_order.filled_price = buy_order.limit
+                    buy_order_filled.filled_time = sell_order.filled_time = int(datetime.datetime.now().strftime('%s%f'))
                     buy_order_filled.filled_by = sell_order
                     sell_order.filled_by = buy_order_filled
             elif self.sell_limitbook and self.buy_limitbook[-1].limit >= self.sell_limitbook[-1].limit:
@@ -253,8 +254,8 @@ class MatchingEngine(object):
                         price = buy_order.limit
                     else:
                         price = sell_order.limit 
-                    self.last_price = buy_order.filled_at = sell_order_filled.filled_at = price
-                    buy_order.filled_at = sell_order_filled.filled_at = int(datetime.datetime.now().strftime('%s%f'))
+                    self.last_price = buy_order.filled_price = sell_order_filled.filled_price = price
+                    buy_order.filled_time = sell_order_filled.filled_time = int(datetime.datetime.now().strftime('%s%f'))
                     buy_order.filled_by = sell_order_filled
                     sell_order_filled.filled_by = buy_order
                 elif self.buy_limitbook[-1].size == self.sell_limitbook[-1].size:
@@ -269,8 +270,8 @@ class MatchingEngine(object):
                         price = buy_order.limit
                     else:
                         price = sell_order.limit
-                    self.last_price = buy_order.filled_at = sell_order_filled.filled_at = price
-                    buy_order.filled_at = sell_order.filled_at = int(datetime.datetime.now().strftime('%s%f'))
+                    self.last_price = buy_order.filled_price = sell_order_filled.filled_price = price
+                    buy_order.filled_time = sell_order.filled_time = int(datetime.datetime.now().strftime('%s%f'))
                     buy_order.filled_by = sell_order
                     sell_order.filled_by = buy_order
                 elif self.buy_limitbook[-1].size > self.sell_limitbook[-1].size:
@@ -286,11 +287,11 @@ class MatchingEngine(object):
                     self.filled.append(buy_order_filled)
                     self.filled.append(sell_order)
                     if buy_order.submitted_time <= sell_order.submitted_time:
-                        price = buy_order.limit
-                    else:
                         price = sell_order.limit
-                    self.last_price = buy_order.filled_at = sell_order_filled.filled_at = price
-                    buy_order_filled.filled_at = sell_order.filled_at = int(datetime.datetime.now().strftime('%s%f'))
+                    else:
+                        price = buy_order.limit
+                    self.last_price = buy_order.filled_price = sell_order_filled.filled_price = price
+                    buy_order_filled.filled_time = sell_order.filled_time = int(datetime.datetime.now().strftime('%s%f'))
                     buy_order_filled.filled_by = sell_order
                     sell_order.filled_by = buy_order_filled
                     
