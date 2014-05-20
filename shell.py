@@ -10,9 +10,9 @@ class market_shell(cmd.Cmd):
         tokens = shlex.split(args)
         if len(tokens) == 0:
             if not self.user:
-                print "Currently not logged in"
+                print >> self.stdout,  "Currently not logged in"
             else:
-                print "Currently logged in as {}".format(self.user)
+                print >> self.stdout,  "Currently logged in as {}".format(self.user)
             
         elif len(tokens) == 2:
             user = tokens[0]
@@ -22,24 +22,24 @@ class market_shell(cmd.Cmd):
                 userobject = userlist.pop()
                 if userobject.password == password:
                     self.user = user 
-                    print "Successfully logged in as {}".format(self.user)
+                    print >> self.stdout,  "Successfully logged in as {}".format(self.user)
                 else:
-                    print "Failed to log in as {}".format(user)
+                    print >> self.stdout,  "Failed to log in as {}".format(user)
             else:
-                print "Failed to log in as {}".format(user)
+                print >> self.stdout,  "Failed to log in as {}".format(user)
         else:
             self.help_user()
 
     def help_user(self,**args):
-        print "Usage: user <username> <password>"
-        print "Log in with a username and password"
-        print
-        print "Usage: user"
-        print "Display current user ID"
+        print >> self.stdout,  "Usage: user <username> <password>"
+        print >> self.stdout,  "Log in with a username and password"
+        print >> self.stdout,  "" 
+        print >> self.stdout,  "Usage: user"
+        print >> self.stdout,  "Display current user ID"
 
     def auth(self):
         if not self.user:
-            print "You must be logged in to use this function"
+            print >> self.stdout,  "You must be logged in to use this function"
             return False
         else:
             return True
@@ -54,7 +54,7 @@ class market_shell(cmd.Cmd):
                 except ValueError:
                     self.help_buy()
                     return
-                print "Placing a market BUY order for {0[0]} unit(s)".format(args)
+                print >> self.stdout,  "Placing a market BUY order for {0[0]} unit(s)".format(args)
             elif num_args == 3 and args[1] in ["@", "limit"]:
                 try:
                     args[0] = float(args[0])
@@ -62,16 +62,16 @@ class market_shell(cmd.Cmd):
                 except ValueError:
                     self.help_buy()
                     return
-                print "Placing a limit BUY order for {0[0]} unit(s) at {0[2]} or better".format(args)
+                print >> self.stdout,  "Placing a limit BUY order for {0[0]} unit(s) at {0[2]} or better".format(args)
             else:
                 self.help_buy()
 
     def help_buy(self,**args):
-        print "Usage: buy <units>"
-        print "Place a BUY market order"
-        print 
-        print "Usage: buy <units> limit <limit price>"
-        print "Place a BUY limit order"
+        print >> self.stdout,  "Usage: buy <units>"
+        print >> self.stdout,  "Place a BUY market order"
+        print >> self.stdout,  ""
+        print >> self.stdout,  "Usage: buy <units> limit <limit price>"
+        print >> self.stdout,  "Place a BUY limit order"
 
     def do_sell(self,args):
         if self.auth():
@@ -83,7 +83,7 @@ class market_shell(cmd.Cmd):
                 except ValueError:
                     self.help_sell()
                     return
-                print "Placing a market SELL order for {0[0]} unit(s)".format(args)
+                print >> self.stdout,  "Placing a market SELL order for {0[0]} unit(s)".format(args)
             elif num_args == 3 and args[1] in ["@", "limit"]:
                 try:
                     args[0] = float(args[0])
@@ -91,26 +91,26 @@ class market_shell(cmd.Cmd):
                 except ValueError:
                     self.help_sell()
                     return
-                print "Placing a limit SELL order for {0[0]} unit(s) at {0[2]} or better".format(args)
+                print >> self.stdout,  "Placing a limit SELL order for {0[0]} unit(s) at {0[2]} or better".format(args)
             else:
                 self.help_sell()
 
     def help_sell(self,**args):
-        print "Usage: sell <units>"
-        print "Place a SELL market order"
-        print 
-        print "Usage: sell <units> limit <limit price>"
-        print "Place a SELL limit order"
+        print >> self.stdout,  "Usage: sell <units>"
+        print >> self.stdout,  "Place a SELL market order"
+        print >> self.stdout,  "" 
+        print >> self.stdout,  "Usage: sell <units> limit <limit price>"
+        print >> self.stdout,  "Place a SELL limit order"
 
  
     def do_exit(self,args):
-        print "\n"
+        print >> self.stdout,  "Exiting...\n"
         return -1
 
     def help_exit(self,**args):
-        print "Usage: exit"
-        print "Terminates the current session"
-        print
+        print >> self.stdout,  "Usage: exit"
+        print >> self.stdout,  "Terminates the current session"
+        print >> self.stdout,  ""
 
     do_EOF = do_exit
     help_EOF = help_exit
