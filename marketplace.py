@@ -60,7 +60,7 @@ class MarketOrderbook(Orderbook):
             order.submitted_time = int(datetime.datetime.now().strftime('%s%f'))
             order.status = "Open Submitted"
 
-class MatchingEngine(object):
+class Market(object):
     def __init__(self):
         self.sell_limitbook = SellLimitOrderbook()
         self.buy_limitbook = BuyLimitOrderbook()
@@ -69,6 +69,9 @@ class MatchingEngine(object):
         self.filled = []
         self.preset_price = None
         self.last_price = None
+        self.units = "Unspecified"
+        self.currency = "Unspecified"
+        self.description = "Default Market"
 
     def __str__(self):
         f = "Filled Orders:\n"
@@ -294,6 +297,20 @@ class MatchingEngine(object):
                     buy_order_filled.filled_time = sell_order.filled_time = int(datetime.datetime.now().strftime('%s%f'))
                     buy_order_filled.filled_by = sell_order
                     sell_order.filled_by = buy_order_filled
+
+class Marketplace(list):
+    def __init__(self,userdb,marketlist=None):
+        super(Marketplace, self).__init__(self)
+        self.users = userdb
+        if marketlist:
+            self.extend(marketlist)
+
+    def add_market(self,market):
+        self.append(market)
+
+    def remove_market(self,market):
+        self.remove(market)
+        
                     
 
 
@@ -344,7 +361,8 @@ if __name__ == "__main__":
     market_orderbook2.add(market_order8)
     print market_orderbook2
 
-    market = MatchingEngine()
+    marketplace = Marketplace(None)
+    market = Market()
     market.match()
     print market
 
