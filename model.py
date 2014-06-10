@@ -2,7 +2,6 @@
 
 import sqlalchemy
 
-from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 
 engine = sqlalchemy.create_engine('postgresql://matching_engine:password@localhost/matching-engine')
@@ -38,7 +37,7 @@ class Balance(Base):
 class Transaction(Base):
     __tablename__ = 'transactions'
 
-    id = sqlalchemy.Column(sqlalchemy.Integer,primary_key=True)
+    number = sqlalchemy.Column(sqlalchemy.Integer,sqlalchemy.Sequence('transaction_number_sequence'),primary_key=True)
     user = sqlalchemy.Column(sqlalchemy.String,sqlalchemy.ForeignKey("users.id"),nullable=False)
     asset = sqlalchemy.Column(sqlalchemy.String,sqlalchemy.ForeignKey("assets.name"),nullable=False)
     amount = sqlalchemy.Column(sqlalchemy.Float)
