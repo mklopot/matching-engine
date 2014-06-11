@@ -62,5 +62,11 @@ sqlalchemy.event.listen(tbl, 'after_create', trig_ddl.execute_if(dialect='postgr
 
 Base.metadata.create_all(engine)
 
+from sqlalchemy.orm import scoped_session
+from sqlalchemy.orm import sessionmaker
+
+session_factory = sessionmaker(bind=engine)
+Session = scoped_session(session_factory)
+
 if __name__ == "__main__":
     pass

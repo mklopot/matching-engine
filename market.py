@@ -61,7 +61,7 @@ class MarketOrderbook(Orderbook):
             order.status = "Open Submitted"
 
 class Market(object):
-    def __init__(self,asset1,asset2,dbsession):
+    def __init__(self,dbsession,asset1,asset2):
         self.asset1 = asset1
         self.asset2 = asset2
         self.dbsession = dbsession
