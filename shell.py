@@ -6,6 +6,10 @@ import shlex
 class market_shell(cmd.Cmd):
     user = None
 
+    def __init__(self,complete_char,stdin,stdout,marketplace):
+        cmd.Cmd.__init__(self,complete_char,stdin,stdout)
+        self.marketplace = marketplace
+
     def do_user(self,args):
         tokens = shlex.split(args)
         if len(tokens) == 0:
