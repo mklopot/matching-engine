@@ -15,6 +15,8 @@ class User(Base):
     active = sqlalchemy.Column(sqlalchemy.Boolean, default='true')
     admin = sqlalchemy.Column(sqlalchemy.Boolean, default='false')
 
+    balance = sqlalchemy.orm.relationship("Balance", order_by="Balance.asset")
+
     def __repr__(self):
         return "<User: {0.id}>".format(self)
 

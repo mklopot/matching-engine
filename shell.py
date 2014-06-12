@@ -102,7 +102,14 @@ class marketplace_shell(cmd.Cmd):
         print >> self.stdout,  "Usage: sell <units> limit <limit price>"
         print >> self.stdout,  "Place a SELL limit order"
 
+    def do_balance(self,args):
+        if self.auth():
+            for balance in self.user.balance: print >> self.stdout, "{0.asset} {0.balance}".format(balance)
  
+    def help_balance(self,**args):
+        print >> self.stdout,  "Usage: balance"
+        print >> self.stdout,  "List balances for the current user at this marketplace"
+
     def do_exit(self,args):
         print >> self.stdout,  "Exiting...\n"
         return -1
