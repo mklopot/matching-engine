@@ -14,9 +14,10 @@ class Marketplace(object):
         for combo in itertools.combinations(dbsession.query(model.Asset), 2):
             self.markets.append(market.Market(dbsession, combo[0], combo[1]))        
 
-    def verify_user_password(self,user_id,supplied_password):
-        if self.dbsession.query(model.User.password).filter(model.User.id == user_id).scalar() == supplied_password:
-            return True
+    def get_user_by_userid(self,user_id,supplied_password):
+        user = self.dbsession.query(model.User).filter(model.User.id == user_id).scalar()
+        if user and user.password == supplied_password:
+            return user
         else:
             return False
         

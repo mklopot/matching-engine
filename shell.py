@@ -2,8 +2,9 @@
 
 import cmd
 import shlex
+import readline
 
-class market_shell(cmd.Cmd):
+class marketplace_shell(cmd.Cmd):
     user = None
 
     def __init__(self,complete_char,stdin,stdout,marketplace):
@@ -16,21 +17,16 @@ class market_shell(cmd.Cmd):
             if not self.user:
                 print >> self.stdout,  "Currently not logged in"
             else:
-                print >> self.stdout,  "Currently logged in as {}".format(self.user)
+                print >> self.stdout,  "Currently logged in as {}".format(self.user.id)
             
         elif len(tokens) == 2:
-            user = tokens[0]
+            user_id = tokens[0]
             password = tokens[1]
-            userlist = filter(lambda u: u.id == user,users)
-            if userlist: 
-                userobject = userlist.pop()
-                if userobject.password == password:
-                    self.user = user 
-                    print >> self.stdout,  "Successfully logged in as {}".format(self.user)
-                else:
-                    print >> self.stdout,  "Failed to log in as {}".format(user)
+            self.user = self.marketplace.get_user_by_userid(user_id,password)  
+            if self.user:  
+                print >> self.stdout,  "Successfully logged in as {}".format(self.user.id)
             else:
-                print >> self.stdout,  "Failed to log in as {}".format(user)
+                print >> self.stdout,  "Failed to log in as {}".format(user_id)
         else:
             self.help_user()
 
