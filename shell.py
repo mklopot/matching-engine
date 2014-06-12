@@ -122,15 +122,6 @@ class marketplace_shell(cmd.Cmd):
 
 
 if __name__ == "__main__":
-    global users
-    class User(object):
-        id = None
-        password = None
-
-    mike=User()
-    mike.id = "Mike"
-    mike.password="password"
-    users = [mike]
 
     cli = market_shell()
     cli.preloop
