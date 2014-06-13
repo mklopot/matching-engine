@@ -110,6 +110,17 @@ class marketplace_shell(cmd.Cmd):
         print >> self.stdout,  "Usage: balance"
         print >> self.stdout,  "List balances for the current user at this marketplace"
 
+    def do_markets(self,args):
+        i = 1
+        for market in self.marketplace.markets:
+            print >> self.stdout, "{0}. {1.asset1.name} / {1.asset2.name}".format(i,market)
+            i += 1
+
+    def help_balance(self,**args):
+        print >> self.stdout,  "Usage: markets"
+        print >> self.stdout,  "List asset markets available at this marketplace"
+
+
     def do_exit(self,args):
         print >> self.stdout,  "Exiting...\n"
         return -1

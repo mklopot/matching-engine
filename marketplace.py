@@ -11,7 +11,7 @@ class Marketplace(object):
         self.markets = []
 
         # Create a market for each pair of assets
-        for combo in itertools.combinations(dbsession.query(model.Asset), 2):
+        for combo in itertools.combinations(dbsession.query(model.Asset).order_by(model.Asset.name), 2):
             self.markets.append(market.Market(dbsession, combo[0], combo[1]))        
 
     def get_user_by_userid(self,user_id,supplied_password):
@@ -20,4 +20,3 @@ class Marketplace(object):
             return user
         else:
             return False
-        
