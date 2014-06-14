@@ -128,30 +128,74 @@ class marketplace_shell(cmd.Cmd):
         if self.auth():
             args = shlex.split(args)
             num_args = len(args)
-            if num_args == 1:
+            if num_args == 2  or (num_args == 4 and args[2] == "for"):
+                # Market order: "sell 30 stilton" or "sell 30 cheddar for shrubberies"
                 try:
                     args[0] = float(args[0])
                 except ValueError:
                     self.help_sell()
                     return
-                print >> self.stdout,  "Placing a market SELL order for {0[0]} unit(s)".format(args)
-            elif num_args == 3 and args[1] in ["@", "at", "for", "limit"]:
+                asset1 = args[1].upper()
+                if self.validate_assetname(asset1):
+                    args[1] = asset1
+                else:
+                    print >> self.stdout, "Unknown asset type: {}".format(args[1])
+                    return
+                if num_args == 2:
+                    asset2 = self.user.default_currency
+                    print >> self.stdout,  "Placing a market SELL order for {0[0]} {0[1]} at market price for default currency ({1})".format(args,asset2)
+                    return
+                else:
+                    asset2 = args[3].upper()
+                    if self.validate_assetname(asset2):
+                        args[3] = asset2
+                    else:
+                        print >> self.stdout, "Unknown asset type: {}".format(args[3])
+                        return
+                    if asset1 == asset2:
+                        print >> self.stdout, "Cannot trade {0} for {0}".format(asset1)
+                        self.help_sell()
+                        return
+                    print >> self.stdout,  "Placing a market SELL order for {0[0]} {0[1]} at market price in {0[3]}".format(args)
+
+            elif args[2] in ["@", "at", "limit"] and (num_args == 4 or num_args == 5):
+                # Limit order: "sell 23 munster @ 24.50" or "sell 20 brie at 18.75 pounds"
                 try:
                     args[0] = float(args[0])
-                    args[2] = float(args[2])
+                    args[3] = float(args[3])
                 except ValueError:
                     self.help_sell()
                     return
-                print >> self.stdout,  "Placing a limit SELL order for {0[0]} unit(s) at {0[2]} or better".format(args)
+                asset1 = args[1].upper()
+                if asset1 in [asset.name for asset in self.marketplace.assets]:
+                    args[1] = asset1
+                else:
+                    print >> self.stdout, "Unknown asset type: {}".format(args[1])
+                    return
+                if num_args == 4:
+                    asset2 = self.user.default_currency
+                else:
+                    asset2 = args[4].upper()
+                    if self.validate_assetname(asset2):
+                        args[4] = asset2
+                    else:
+                        print >> self.stdout, "Unknown asset type: {}".format(args[5])
+                        return
+                if asset1 == asset2:
+                    print >> self.stdout, "Cannot trade {0} for {0}".format(asset1)
+                    self.help_sell()
+                    return
+                print >> self.stdout,  "Placing a limit SELL order for {0[0]} {0[1]} at {0[3]} {1} or better".format(args,asset2)
             else:
                 self.help_sell()
 
     def help_sell(self,**args):
-        print >> self.stdout,  "Usage: sell <units>"
+        print >> self.stdout,  "Usage: sell <N> <asset1> [for <asset2>]"
         print >> self.stdout,  "Place a SELL market order"
-        print >> self.stdout,  "" 
-        print >> self.stdout,  "Usage: sell <units> limit <limit price>"
+        print >> self.stdout,  ""
+        print >> self.stdout,  "Usage: sell <N> <asset1> at <limit price> [asset2]"
         print >> self.stdout,  "Place a SELL limit order"
+        print >> self.stdout,  ""
 
     def do_balance(self,args):
         if self.auth():
