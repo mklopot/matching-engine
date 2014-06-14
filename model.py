@@ -12,6 +12,7 @@ class User(Base):
 
     id = sqlalchemy.Column(sqlalchemy.String,primary_key=True,index=True)
     password = sqlalchemy.Column(sqlalchemy.String)
+    default_currency = sqlalchemy.Column(sqlalchemy.String,sqlalchemy.ForeignKey('assets.name'),nullable=False)
     active = sqlalchemy.Column(sqlalchemy.Boolean, default='true')
     admin = sqlalchemy.Column(sqlalchemy.Boolean, default='false')
 

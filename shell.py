@@ -36,6 +36,7 @@ class marketplace_shell(cmd.Cmd):
         print >> self.stdout,  "" 
         print >> self.stdout,  "Usage: user"
         print >> self.stdout,  "Display current user ID"
+        print >> self.stdout,  "" 
 
     def auth(self):
         if not self.user:
@@ -44,34 +45,84 @@ class marketplace_shell(cmd.Cmd):
         else:
             return True
 
+    def validate_assetname(self,assetname):
+        if assetname in [asset.name for asset in self.marketplace.assets]:
+            return True
+        else:
+            return False
+
     def do_buy(self,args):
         if self.auth():    
             args = shlex.split(args)
             num_args = len(args)
-            if num_args == 1:
+            if num_args == 2  or (num_args == 4 and args[2] == "for"):
+                # Market order: "buy 30 stilton" or "buy 30 cheddar for shrubberies"
                 try:
                     args[0] = float(args[0])
                 except ValueError:
                     self.help_buy()
                     return
-                print >> self.stdout,  "Placing a market BUY order for {0[0]} unit(s)".format(args)
-            elif num_args == 3 and args[1] in ["@", "limit"]:
+                asset1 = args[1].upper()
+                if self.validate_assetname(asset1):
+                    args[1] = asset1
+                else:
+                    print >> self.stdout, "Unknown asset type: {}".format(args[1])
+                    return
+                if num_args == 2:
+                    asset2 = self.user.default_currency
+                    print >> self.stdout,  "Placing a market BUY order for {0[0]} {0[1]} at market price for default currency ({1})".format(args,asset2)
+                    return
+                else:
+                    asset2 = args[3].upper()
+                    if self.validate_assetname(asset2):
+                        args[3] = asset2
+                    else: 
+                        print >> self.stdout, "Unknown asset type: {}".format(args[3])
+                        return
+                    if asset1 == asset2:
+                        print >> self.stdout, "Cannot trade {0} for {0}".format(asset1)
+                        self.help_buy()
+                        return
+                    print >> self.stdout,  "Placing a market BUY order for {0[0]} {0[1]} at market price in {0[3]}".format(args)
+
+            elif args[2] in ["@", "at", "limit"] and (num_args == 4 or num_args == 5):
+                # Limit order: "buy 23 munster @ 24.50" or "buy 20 brie at 18.75 pounds"
                 try:
                     args[0] = float(args[0])
-                    args[2] = float(args[2])
+                    args[3] = float(args[3])
                 except ValueError:
                     self.help_buy()
                     return
-                print >> self.stdout,  "Placing a limit BUY order for {0[0]} unit(s) at {0[2]} or better".format(args)
+                asset1 = args[1].upper()
+                if asset1 in [asset.name for asset in self.marketplace.assets]:
+                    args[1] = asset1
+                else:
+                    print >> self.stdout, "Unknown asset type: {}".format(args[1])
+                    return
+                if num_args == 4:
+                    asset2 = self.user.default_currency
+                else:
+                    asset2 = args[4].upper()
+                    if self.validate_assetname(asset2):
+                        args[4] = asset2
+                    else:
+                        print >> self.stdout, "Unknown asset type: {}".format(args[5])
+                        return
+                if asset1 == asset2:
+                    print >> self.stdout, "Cannot trade {0} for {0}".format(asset1)
+                    self.help_buy()
+                    return
+                print >> self.stdout,  "Placing a limit BUY order for {0[0]} {0[1]} at {0[3]} {1} or better".format(args,asset2)
             else:
                 self.help_buy()
 
     def help_buy(self,**args):
-        print >> self.stdout,  "Usage: buy <units>"
+        print >> self.stdout,  "Usage: buy <N> <asset1> [for <asset2>]"
         print >> self.stdout,  "Place a BUY market order"
         print >> self.stdout,  ""
-        print >> self.stdout,  "Usage: buy <units> limit <limit price>"
+        print >> self.stdout,  "Usage: buy <N> <asset1> at <limit price> [asset2]"
         print >> self.stdout,  "Place a BUY limit order"
+        print >> self.stdout,  "" 
 
     def do_sell(self,args):
         if self.auth():
@@ -84,7 +135,7 @@ class marketplace_shell(cmd.Cmd):
                     self.help_sell()
                     return
                 print >> self.stdout,  "Placing a market SELL order for {0[0]} unit(s)".format(args)
-            elif num_args == 3 and args[1] in ["@", "limit"]:
+            elif num_args == 3 and args[1] in ["@", "at", "for", "limit"]:
                 try:
                     args[0] = float(args[0])
                     args[2] = float(args[2])
@@ -113,10 +164,10 @@ class marketplace_shell(cmd.Cmd):
     def do_markets(self,args):
         i = 1
         for market in self.marketplace.markets:
-            print >> self.stdout, "{0}. {1.asset1.name} / {1.asset2.name}".format(i,market)
+            print >> self.stdout, "{0}. {1.asset1.name} <=> {1.asset2.name}".format(i,market)
             i += 1
 
-    def help_balance(self,**args):
+    def help_markets(self,**args):
         print >> self.stdout,  "Usage: markets"
         print >> self.stdout,  "List asset markets available at this marketplace"
 
