@@ -6,6 +6,7 @@ import copy
 class Order(object):
     def __init__(self,user,size=1):
         self.user = user
+        self.num = None
         self.size = size
         self.created_time = int(datetime.datetime.now().strftime('%s%f'))
         self.submitted_time = False
@@ -72,9 +73,6 @@ class Market(object):
         self.filled = []
         self.preset_price = None
         self.last_price = None
-        self.units = "Unspecified"
-        self.currency = "Unspecified"
-        self.description = "Default Market"
 
     def __str__(self):
         f = "Filled Orders:\n"
@@ -94,12 +92,31 @@ class Market(object):
 
     def submit_market_buy(self,order):
         self.buy_marketbook.add(order)
+
     def submit_market_sell(self,order):
         self.sell_marketbook.add(order)
+
     def submit_limit_buy(self,order):
         self.buy_limitbook.add(order)
+
     def submit_limit_sell(self,order):
         self.sell_limitbook.add(order)
+
+    def submit_sell_order(self,order):
+        if isinstance(order,LimitOrder):
+            self.submit_limit_sell(order)
+        elif isinstance(order,MarketOrder):
+            self.submit_market_sell(order)
+        else:
+            raise TypeError("Unsupported Order Type: {}".format(ordertype))
+
+    def submit_buy_order(self,order):
+        if isinstance(order,LimitOrder):
+            self.submit_limit_buy(order)
+        elif isinstance(order,MarketOrder):
+            self.submit_market_buy(order)
+        else:
+            raise TypeError("Unsupported Order Type: {}".format(ordertype))
  
     def match(self):
         ref_price = self.get_reference_price()

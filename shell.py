@@ -4,6 +4,8 @@ import cmd
 import shlex
 import readline
 
+from market import MarketOrder, LimitOrder
+
 class marketplace_shell(cmd.Cmd):
     user = None
 
@@ -71,6 +73,12 @@ class marketplace_shell(cmd.Cmd):
                 if num_args == 2:
                     asset2 = self.user.default_currency
                     print >> self.stdout,  "Placing a market BUY order for {0[0]} {0[1]} at market price for default currency ({1})".format(args,asset2)
+                    order = MarketOrder(self.user,args[0])
+                    order_id = self.marketplace.submit_buy_order(order,asset1,asset2)
+                    if order_id:
+                        print >> self.stdout,  "Submitted as Order Number {}".format(order_id)
+                    else:
+                        print >> self.stdout,  "Failed"
                     return
                 else:
                     asset2 = args[3].upper()
