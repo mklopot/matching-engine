@@ -238,6 +238,14 @@ class marketplace_shell(cmd.Cmd):
         print >> self.stdout,  "Place a SELL limit order"
         print >> self.stdout,  ""
 
+    def do_order(self,args):
+        if self.auth():
+            args = shlex.split(args)
+            if len(args) == 1:
+                if args[0] == "list":
+                    orders = self.marketplace.get_orders_by_user(self.user)
+                    for order in orders: print >> self.stdout, order
+     
     def do_balance(self,args):
         if self.auth():
             for balance in self.user.balance: print >> self.stdout, "{0.asset} {0.balance}".format(balance)

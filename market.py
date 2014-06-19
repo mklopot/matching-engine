@@ -66,11 +66,13 @@ class Market(object):
         self.asset1 = asset1
         self.asset2 = asset2
         self.dbsession = dbsession
+
         self.sell_limitbook = SellLimitOrderbook()
         self.buy_limitbook = BuyLimitOrderbook()
         self.sell_marketbook = MarketOrderbook()
         self.buy_marketbook = MarketOrderbook()
         self.filled = []
+
         self.preset_price = None
         self.last_price = None
 
@@ -79,6 +81,12 @@ class Market(object):
         for order in self.filled:
             f +=  str(order) + "\n"
         return str(self.buy_marketbook) + str(self.sell_marketbook) + str(self.buy_limitbook) + str(self.sell_limitbook) + f
+
+    def get_orders_by_user(self,user):
+        result = []
+        for orderbook in [self.sell_limitbook, self.buy_limitbook, self.sell_marketbook, self.buy_marketbook, self.filled]:
+            result.extend([order for order in orderbook if order.user == user])
+        return result
 
     def get_reference_price(self):
         if self.sell_limitbook:

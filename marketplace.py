@@ -30,8 +30,6 @@ class Marketplace(object):
             self.markets_hash_reverse[(str(asset2.name),str(asset1.name))] = newmarket
 
         self.order_num = ordernum_generator(69105)
-        print self.markets_hash
-        print self.markets_hash_reverse
 
 
     def get_user_by_userid(self,user_id,supplied_password):
@@ -44,9 +42,6 @@ class Marketplace(object):
     def submit_buy_order(self,order,assetname1,assetname2):
         assetname1 = str(assetname1)
         assetname2 = str(assetname2)
-        t = (assetname1, assetname2)
-        print t
-
         if order.num:
             print "Attempting to submit an order that already has a number assigned. Rejecting..."
             return
@@ -64,3 +59,8 @@ class Marketplace(object):
         if order.num:
             return order.num
 
+    def get_orders_by_user(self,user):
+        result = []
+        for market_instance in self.markets:
+            result.extend(market_instance.get_orders_by_user(user))
+        return result
