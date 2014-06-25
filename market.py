@@ -16,7 +16,7 @@ class Order(object):
         self.filled_by = None
 
     def __str__(self):
-        return "{0:12}                      for {1.size:12.8f}  submitted:{1.submitted_time:16}  user:{1.user:10} status:{1.status:16} price:{1.filled_price:}".format(type(self).__name__,self)
+        return "{1.num} {0:12}                      for {1.size:12.8f}  submitted:{1.submitted_time:16}  user:{1.user:10} status:{1.status:16} price:{1.filled_price:}".format(type(self).__name__,self)
 
 class LimitOrder(Order):
     def __init__(self,user,limit,size=1):
@@ -126,6 +126,14 @@ class Market(object):
         else:
             raise TypeError("Unsupported Order Type: {}".format(ordertype))
  
+    def cancel_order(self,order_num,user):
+        for orderbook in [self.sell_limitbook, self.buy_limitbook, self.sell_marketbook, self.buy_marketbook]:
+            orders_to_cancel = [order for order in orderbook if order.user == user and order.num == order_num]
+            if orders_to_cancel:
+                for order in orders_to_cancel:
+                    orderbook.remove(order)
+                return True
+
     def match(self):
         ref_price = self.get_reference_price()
         if self.buy_marketbook and not ref_price:

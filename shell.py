@@ -245,6 +245,19 @@ class marketplace_shell(cmd.Cmd):
                 if args[0] == "list":
                     orders = self.marketplace.get_orders_by_user(self.user)
                     for order in orders: print >> self.stdout, order
+
+    def do_cancel(self, order_num):
+        if self.auth():
+            try:
+                order_num = int(order_num)
+            except ValueError:
+                return
+
+            print >> self.stdout,  "Attempting to cancel order number {}".format(order_num)
+            if self.marketplace.cancel_order(order_num,self.user):
+                print >> self.stdout,  "Order {} cancelled".format(order_num)
+            else:
+                print >> self.stdout,  "Failed"
      
     def do_balance(self,args):
         if self.auth():

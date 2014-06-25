@@ -64,3 +64,10 @@ class Marketplace(object):
         for market_instance in self.markets:
             result.extend(market_instance.get_orders_by_user(user))
         return result
+
+    def cancel_order(self,order_num,user):
+        result = []
+        for market_instance in self.markets:
+            result.extend([market_instance.cancel_order(order_num,user)])
+        if True in result:
+            return True
