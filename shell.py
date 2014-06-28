@@ -73,8 +73,8 @@ class marketplace_shell(cmd.Cmd):
                 if num_args == 2:
                     asset2 = self.user.default_currency
                     print >> self.stdout,  "Placing a market BUY order for {0[0]} {0[1]} at market price for default currency ({1})".format(args,asset2)
-                    order = MarketOrder(self.user,args[0])
-                    order_id = self.marketplace.submit_buy_order(order,asset1,asset2)
+                    order = MarketOrder(self.user,args[0],assetname1=asset1,assetname2=asset2,ordertype="BUY")
+                    order_id = self.marketplace.submit_buy_order(order)
                     if order_id:
                         print >> self.stdout,  "Submitted as Order Number {}".format(order_id)
                     else:
@@ -92,8 +92,8 @@ class marketplace_shell(cmd.Cmd):
                         self.help_buy()
                         return
                     print >> self.stdout,  "Placing a market BUY order for {0[0]} {0[1]} at market price in {0[3]}".format(args)
-                    order = MarketOrder(self.user,args[0])
-                    order_id = self.marketplace.submit_buy_order(order,asset1,asset2)
+                    order = MarketOrder(self.user,args[0],assetname1=asset1,assetname2=asset2,ordertype="BUY")
+                    order_id = self.marketplace.submit_buy_order(order)
                     if order_id:
                         print >> self.stdout,  "Submitted as Order Number {}".format(order_id)
                     else:
@@ -127,8 +127,8 @@ class marketplace_shell(cmd.Cmd):
                     self.help_buy()
                     return
                 print >> self.stdout,  "Placing a limit BUY order for {0[0]} {0[1]} at {0[3]} {1} or better".format(args,asset2)
-                order = LimitOrder(self.user,args[0])
-                order_id = self.marketplace.submit_buy_order(order,asset1,asset2)
+                order = LimitOrder(self.user,size=args[0],limit=args[3],assetname1=asset1,assetname2=asset2,ordertype="BUY")
+                order_id = self.marketplace.submit_buy_order(order)
                 if order_id:
                     print >> self.stdout,  "Submitted as Order Number {}".format(order_id)
                 else:
@@ -164,9 +164,9 @@ class marketplace_shell(cmd.Cmd):
                 if num_args == 2:
                     asset2 = self.user.default_currency
                     print >> self.stdout,  "Placing a market SELL order for {0[0]} {0[1]} at market price for default currency ({1})".format(args,asset2)
-                    order = MarketOrder(self.user,args[0])
+                    order = MarketOrder(self.user,args[0],assetname1=asset1,assetname2=asset2,ordertype="SELL")
                     # Only BUY orders can be submitted to a marketplace, so we interchange asset1 and asset2 and turn a SELL into a BUY
-                    order_id = self.marketplace.submit_buy_order(order,asset2,asset1)
+                    order_id = self.marketplace.submit_buy_order(order)
                     if order_id:
                         print >> self.stdout,  "Submitted as Order Number {}".format(order_id)
                     else:
@@ -184,9 +184,9 @@ class marketplace_shell(cmd.Cmd):
                         self.help_sell()
                         return
                     print >> self.stdout,  "Placing a market SELL order for {0[0]} {0[1]} at market price in {0[3]}".format(args)
-                    order = MarketOrder(self.user,args[0])
+                    order = MarketOrder(self.user,args[0],assetname1=asset1,assetname2=asset2,ordertype="SELL")
                     # Only BUY orders can be submitted to a marketplace, so we interchange asset1 and asset2 and turn a SELL into a BUY
-                    order_id = self.marketplace.submit_buy_order(order,asset2,asset1)
+                    order_id = self.marketplace.submit_buy_order(order)
                     if order_id:
                         print >> self.stdout,  "Submitted as Order Number {}".format(order_id)
                     else:
@@ -220,9 +220,9 @@ class marketplace_shell(cmd.Cmd):
                     self.help_sell()
                     return
                 print >> self.stdout,  "Placing a limit SELL order for {0[0]} {0[1]} at {0[3]} {1} or better".format(args,asset2)
-                order = LimitOrder(self.user,args[0])
+                order = LimitOrder(self.user,size=args[0],limit=args[3],assetname1=asset1,assetname2=asset2,ordertype="SELL")
                 # Only BUY orders can be submitted to a marketplace, so we interchange asset1 and asset2 and turn a SELL into a BUY
-                order_id = self.marketplace.submit_buy_order(order,asset2,asset1)
+                order_id = self.marketplace.submit_buy_order(order)
                 if order_id:
                     print >> self.stdout,  "Submitted as Order Number {}".format(order_id)
                 else:

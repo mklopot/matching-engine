@@ -39,9 +39,9 @@ class Marketplace(object):
         else:
             return False
 
-    def submit_buy_order(self,order,assetname1,assetname2):
-        assetname1 = str(assetname1)
-        assetname2 = str(assetname2)
+    def submit_buy_order(self,order):
+        assetname1 = order.assetname1
+        assetname2 = order.assetname2
         if order.num:
             print "Attempting to submit an order that already has a number assigned. Rejecting..."
             return

@@ -4,10 +4,13 @@ import datetime
 import copy
 
 class Order(object):
-    def __init__(self,user,size=1):
+    def __init__(self,user,size=1,assetname1=None,assetname2=None,ordertype=""):
         self.user = user
-        self.num = None
+        self.num = None    #Order number is assigned when an order is accepted by a marketplace
         self.size = size
+        self.assetname1 = str(assetname1)
+        self.assetname2 = str(assetname2)
+        self.ordertype = ordertype 
         self.created_time = int(datetime.datetime.now().strftime('%s%f'))
         self.submitted_time = False
         self.status = "Not Submitted"
@@ -16,15 +19,15 @@ class Order(object):
         self.filled_by = None
 
     def __str__(self):
-        return "{1.num} {0:12}                      for {1.size:12.8f}  submitted:{1.submitted_time:16}  user:{1.user:10} status:{1.status:16} price:{1.filled_price:}".format(type(self).__name__,self)
+        return "{1.num} {0:12} {1.ordertype:4} {1.size:12.6f} {1.assetname1:12} for              {1.assetname2:12}  user:{1.user.id:10}  status:{1.status:16}  price:{1.filled_price:}".format(type(self).__name__,self)
 
 class LimitOrder(Order):
-    def __init__(self,user,limit,size=1):
-        super(LimitOrder, self).__init__(user,size)
+    def __init__(self,user,limit,size=1,assetname1=None,assetname2=None,ordertype=""):
+        super(LimitOrder, self).__init__(user,size,assetname1,assetname2,ordertype)
         self.limit = limit
 
     def __str__(self):
-        return "{0:12} at {1.limit:16.2f}  for {1.size:12.8f}  submitted:{1.submitted_time:16}  user:{1.user:10} status:{1.status:16} price:{1.filled_price:}".format(type(self).__name__,self)
+        return "{1.num} {0:12} {1.ordertype:4} {1.size:12.6f} {1.assetname1:12}  @  {1.limit:12.6f} {1.assetname2:12}  user:{1.user.id:10}  status:{1.status:16}  price:{1.filled_price:}".format(type(self).__name__,self)
 
 class MarketOrder(Order):
     pass
