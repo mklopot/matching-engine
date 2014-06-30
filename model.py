@@ -30,7 +30,7 @@ class Asset(Base):
 
 class Balance(Base):
     __tablename__ = 'balances'
-    __table_args__ = (sqlalchemy.PrimaryKeyConstraint('user','asset'),)
+    __table_args__ = (sqlalchemy.PrimaryKeyConstraint('user','asset'),sqlalchemy.CheckConstraint('balance >= 0'))
 
     user = sqlalchemy.Column(sqlalchemy.String,sqlalchemy.ForeignKey('users.id'),nullable=False)
     asset = sqlalchemy.Column(sqlalchemy.String,sqlalchemy.ForeignKey('assets.name'),nullable=False)
@@ -40,7 +40,8 @@ class Balance(Base):
 class Transaction(Base):
     __tablename__ = 'transactions'
 
-    number = sqlalchemy.Column(sqlalchemy.Integer,sqlalchemy.Sequence('transaction_number_sequence'),primary_key=True)
+    #number = sqlalchemy.Column(sqlalchemy.Integer,sqlalchemy.Sequence('transaction_number_sequence'),primary_key=True)
+    number = sqlalchemy.Column(sqlalchemy.Integer,primary_key=True)
     user = sqlalchemy.Column(sqlalchemy.String,sqlalchemy.ForeignKey("users.id"),nullable=False)
     asset = sqlalchemy.Column(sqlalchemy.String,sqlalchemy.ForeignKey("assets.name"),nullable=False)
     amount = sqlalchemy.Column(sqlalchemy.Float)
