@@ -65,29 +65,33 @@ class MarketOrderbook(Orderbook):
             order.status = "Open Submitted"
 
 class Market(object):
-    def __init__(self,dbsession,asset1,asset2):
+    def __init__(self,exchange_payment,asset1,asset2):
         self.asset1 = asset1
         self.asset2 = asset2
-        self.dbsession = dbsession
+        self.exchange_payment = exchange_payment    # Function to exchange assets between users when filling orders
 
         self.sell_limitbook = SellLimitOrderbook()
         self.buy_limitbook = BuyLimitOrderbook()
         self.sell_marketbook = MarketOrderbook()
         self.buy_marketbook = MarketOrderbook()
-        self.filled = []
+        self.filled_orders = []
+        self.cancelled_orders = []
 
         self.preset_price = None
         self.last_price = None
 
     def __str__(self):
-        f = "Filled Orders:\n"
-        for order in self.filled:
-            f +=  str(order) + "\n"
+        x = "Filled Orders:\n"
+        for order in self.filled_orders:
+            x +=  str(order) + "\n"
+        x += "Cancelled Orders:\n"
+        for order in self.orders_orders:
+            x +=  str(order) + "\n"
         return str(self.buy_marketbook) + str(self.sell_marketbook) + str(self.buy_limitbook) + str(self.sell_limitbook) + f
 
     def get_orders_by_user(self,user):
         result = []
-        for orderbook in [self.sell_limitbook, self.buy_limitbook, self.sell_marketbook, self.buy_marketbook, self.filled]:
+        for orderbook in [self.sell_limitbook, self.buy_limitbook, self.sell_marketbook, self.buy_marketbook, self.filled_orders, self.cancelled_orders]:
             result.extend([order for order in orderbook if order.user == user])
         return result
 
@@ -135,6 +139,8 @@ class Market(object):
             if orders_to_cancel:
                 for order in orders_to_cancel:
                     orderbook.remove(order)
+                    self.cancelled_orders.append(order)
+                    order.status = "Cancelled by User"
                 return True
 
     def match(self):
