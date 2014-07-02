@@ -24,7 +24,7 @@ class Marketplace(object):
         for combo in itertools.combinations(self.assets, 2):
             asset1 = combo[0]
             asset2 = combo[1]
-            newmarket = market.Market(dbsession, asset1, asset2)        
+            newmarket = market.Market(self.exchange_payment, asset1, asset2)        
             self.markets.append(newmarket)        
             self.markets_hash[(str(asset1.name),str(asset2.name))] = newmarket
             self.markets_hash_reverse[(str(asset2.name),str(asset1.name))] = newmarket
@@ -71,3 +71,25 @@ class Marketplace(object):
             result.extend([market_instance.cancel_order(order_num,user)])
         if True in result:
             return True
+
+    def exchange_payment(self,user1,assetname1,amount1,user2,assetname2,amount2):
+        """User1 sends amount1 of asset1 to user2, user2 in return sends amount2 of asset2 to user1.
+           If any of the users are lacking sufficinet funds, Return a list of the users with insufficient funds to preform the exchange."""
+
+        insufficient_funds = []
+        balance1 = self.dbsession.query(model.Balance.balance).with_for_update().filter(model.Balance.user==user1.id).filter(model.Balance.asset==assetname1).scalar()
+        if balance1 < amount1:
+            insufficient_funds.append(user1)
+        balance2 = self.dbsession.query(model.Balance.balance).with_for_update().filter(model.Balance.user==user2.id).filter(model.Balance.asset==assetname2).scalar()
+        if balance2 < amount2:
+            insufficient_funds.append(user2)
+
+        if insufficient_funds:
+            self.dbsession.commit()
+            return insufficient_funds
+        else:
+           self.dbsession.add_all([model.Transaction(user=user1.id,asset=assetname1,amount=-amount1),
+                                   model.Transaction(user=user2.id,asset=assetname1,amount=amount1),
+                                   model.Transaction(user=user2.id,asset=assetname2,amount=-amount2),
+                                   model.Transaction(user=user1.id,asset=assetname2,amount=amount2)])
+           self.dbsession.commit()
