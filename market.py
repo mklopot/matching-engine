@@ -85,9 +85,9 @@ class Market(object):
         for order in self.filled_orders:
             x +=  str(order) + "\n"
         x += "Cancelled Orders:\n"
-        for order in self.orders_orders:
+        for order in self.cancelled_orders:
             x +=  str(order) + "\n"
-        return str(self.buy_marketbook) + str(self.sell_marketbook) + str(self.buy_limitbook) + str(self.sell_limitbook) + f
+        return str(self.buy_marketbook) + str(self.sell_marketbook) + str(self.buy_limitbook) + str(self.sell_limitbook) + x
 
     def get_orders_by_user(self,user):
         result = []
@@ -143,6 +143,71 @@ class Market(object):
                     order.status = "Cancelled by User"
                 return True
 
+    def insufficient_funds(self,buy_orderbook,sell_orderbook,insufficient_funds_list):
+        buy_order = buy_orderbook[-1]
+        sell_order = sell_orderbook[-1]
+        if buy_order.user in insufficient_funds_list:
+            buy_order.status = "Insufficient Funds"
+            self.cancelled_orders.append(buy_orderbook.pop())
+        elif sell_order.user in insufficient_funds_list:
+            sell_order.status = "Insufficient Funds"
+            self.cancelled_orders.append(sell_orderbook.pop())
+
+    def fill(self,buy_orderbook,sell_orderbook,unitprice):
+        buy_order = buy_orderbook[-1]
+        sell_order = sell_orderbook[-1]
+        if buy_order.size == sell_order.size:
+            insufficient_funds_list = self.exchange_payment(buy_order.user,self.asset2.name,unitprice*buy_order.size,sell_order.user,self.asset1.name,buy_order.size)
+            if insufficient_funds_list: self.insufficient_funds(buy_orderbook,sell_orderbook,insufficient_funds_list); return
+            buy_order = self.buy_marketbook.pop()
+            sell_order = self.sell_marketbook.pop()
+            buy_order.status = "Filled"
+            sell_order.status = "Filled"
+            self.filled.append(buy_order)
+            self.filled.append(sell_order)
+            buy_order.filled_time = sell_order.filled_time = int(datetime.datetime.now().strftime('%s%f'))
+            buy_order.filled_by = sell_order
+            sell_order.filled_by = buy_order
+            self.last_price = smaller_order.filled_price = bigger_order.filled_price = unitprice
+        else:
+            if buy_order.size < sell_order.size:
+                smaller_order = buy_order
+                smaller_order_orderbook = buy_orderbook
+                bigger_order = sell_order
+                bigger_order_orderbook = sell_orderbook
+            #    insufficient_funds_list = self.exchange_payment(buy_order.user,self.asset2.name,unitprice*buy_order.size,sell_order.user,self.asset1.name,buy_order.size)
+            #    if insufficient_funds_list: self.insufficient_funds(buy_orderbook,sell_orderbook,insufficient_funds_list); return 
+            elif buy_order.size > sell_order.size:
+                smaller_order = sell_order
+                smaller_order_orderbook = sell_orderbook
+                bigger_order = buy_order
+                bigger_order_orderbook = buy_orderbook
+
+            print buy_order.user
+            print sell_order.user
+            print self.asset2.name
+            print self.asset1.name
+            print smaller_order.size
+            print unitprice * smaller_order.size
+
+            insufficient_funds_list = self.exchange_payment(buy_order.user,self.asset2.name,unitprice*smaller_order.size,sell_order.user,self.asset1.name,smaller_order.size)
+            if insufficient_funds_list: self.insufficient_funds(buy_orderbook,sell_orderbook,insufficient_funds_list); return
+            smaller_order_orderbook.pop()
+            bigger_order_filled = copy.copy(bigger_order)
+            bigger_order_filled.size = smaller_order.size
+            bigger_order.size -= smaller_order.size
+            smaller_order.status = "Filled"
+            bigger_order_filled.status = "Filled Partial"
+            bigger_order.status = "Open Partial"
+            self.filled_orders.append(smaller_order)
+            self.filled_orders.append(bigger_order_filled)
+            bigger_order_filled.filled_time = smaller_order.filled_time = int(datetime.datetime.now().strftime('%s%f'))
+            smaller_order.filled_by = bigger_order_filled
+            bigger_order_filled.filled_by = smaller_order
+            self.last_price = smaller_order.filled_price = bigger_order_filled.filled_price = unitprice
+             
+
+
     def match(self):
         ref_price = self.get_reference_price()
         if self.buy_marketbook and not ref_price:
@@ -150,216 +215,52 @@ class Market(object):
         # Market orders on the BUY side get processed first
         if self.buy_marketbook:
             if self.sell_marketbook: 
-                if self.buy_marketbook[-1].size < self.sell_marketbook[-1].size:
-                    buy_order = self.buy_marketbook.pop()
-                    sell_order_orig = self.sell_marketbook[-1]
-                    # Update user objects here (account balances, etc)
-                    sell_order_filled = copy.copy(sell_order_orig)
-                    sell_order_filled.size = buy_order.size
-                    sell_order_orig.size -= buy_order.size
-                    buy_order.status = "Filled"
-                    sell_order_filled.status = "Filled Partial"
-                    sell_order_orig.status = "Open Partial"
-                    self.filled.append(buy_order)
-                    self.filled.append(sell_order_filled)
-                    self.last_price = buy_order.filled_price = sell_order_filled.filled_price = ref_price
-                    buy_order.filled_time = sell_order_filled.filled_time = int(datetime.datetime.now().strftime('%s%f'))
-                    buy_order.filled_by = sell_order_filled
-                    sell_order_filled.filled_by = buy_order                    
-                elif self.buy_marketbook[-1].size == self.sell_marketbook[-1].size:
-                    buy_order = self.buy_marketbook.pop()
-                    sell_order = self.sell_marketbook.pop()
-                    # Update user objects here (account balances, etc)
-                    buy_order.status = "Filled"
-                    sell_order.status = "Filled"
-                    self.filled.append(buy_order)
-                    self.filled.append(sell_order)
-                    self.last_price = buy_order.filled_price = sell_order_filled.filled_price = ref_price
-                    buy_order.filled_time = sell_order.filled_time = int(datetime.datetime.now().strftime('%s%f'))
-                    buy_order.filled_by = sell_order
-                    sell_order.filled_by = buy_order
-                elif self.buy_marketbook[-1].size > self.sell_marketbook[-1].size:
-                    buy_order = self.buy_marketbook[-1]
-                    sell_order = self.sell_marketbook.pop()
-                    # Update user objects here (account balances, etc)
-                    buy_order_filled = copy.copy(buy_order)
-                    buy_order_filled.size = sell_order.size
-                    buy_order.size -= sell_order.size
-                    buy_order_filled.status = "Filled Partial"
-                    buy_order.status = "Open Partial"
-                    sell_order.status = "Filled"
-                    self.filled.append(buy_order_filled)
-                    self.filled.append(sell_order)
-                    self.last_price = buy_order_filled.filled_price = sell_order.filled_price = ref_price
-                    buy_order_filled.filled_time = sell_order.filled_time = int(datetime.datetime.now().strftime('%s%f'))
-                    buy_order_filled.filled_by = sell_order
-                    sell_order.filled_by = buy_order_filled
+                self.fill(self.buy_marketbook,self.sell_marketbook,ref_price)
             elif self.sell_limitbook:
-                if self.buy_marketbook[-1].size < self.sell_limitbook[-1].size:
-                    buy_order = self.buy_marketbook.pop()
-                    sell_order_orig = self.sell_limitbook[-1]
-                    # Update user objects here (account balances, etc)
-                    sell_order_filled = copy.copy(sell_order_orig)
-                    sell_order_filled.size = buy_order.size
-                    sell_order_orig.size -= buy_order.size
-                    buy_order.status = "Filled"
-                    sell_order_filled.status = "Filled Partial"
-                    sell_order_orig.status = "Open Partial"
-                    self.filled.append(buy_order)
-                    self.filled.append(sell_order_filled)
-                    self.last_price = buy_order.filled_price = sell_order_filled.filled_price = sell_order.limit
-                    buy_order.filled_time = sell_order_filled.filled_time = int(datetime.datetime.now().strftime('%s%f'))
-                    buy_order.filled_by = sell_order_filled
-                    sell_order_filled.filled_by = buy_order
-                elif self.buy_marketbook[-1].size == self.sell_limitbook[-1].size:
-                    buy_order = self.buy_marketbook.pop()
-                    sell_order = self.sell_limitbook.pop()
-                    # Update user objects here (account balances, etc)
-                    buy_order.status = "Filled"
-                    sell_order.status = "Filled"
-                    self.filled.append(buy_order)
-                    self.filled.append(sell_order)
-                    self.last_price = buy_order.filled_price = sell_order_filled.filled_price = sell_order.limit
-                    buy_order.filled_time = sell_order.filled_time = int(datetime.datetime.now().strftime('%s%f'))
-                    buy_order.filled_by = sell_order
-                    sell_order.filled_by = buy_order
-                elif self.buy_marketbook[-1].size > self.sell_limitbook[-1].size:
-                    buy_order = self.buy_marketbook[-1]
-                    sell_order = self.sell_limitbook.pop()
-                    # Update user objects here (account balances, etc)
-                    buy_order_filled = copy.copy(buy_order)
-                    buy_order_filled.size = sell_order.size
-                    buy_order.size -= sell_order.size
-                    buy_order_filled.status = "Filled Partial"
-                    buy_order.status = "Open Partial"
-                    sell_order.status = "Filled"
-                    self.filled.append(buy_order_filled)
-                    self.filled.append(sell_order)
-                    self.last_price = buy_order_filled.filled_price = sell_order.filled_price = sell_order.limit
-                    buy_order_filled.filled_time = sell_order.filled_time = int(datetime.datetime.now().strftime('%s%f'))
-                    buy_order_filled.filled_by = sell_order
-                    sell_order.filled_by = buy_order_filled
+                self.fill(self.buy_marketbook,self.sell_limitbook,self.sell_limitbook[-1].limit)
         elif self.buy_limitbook:
             if self.sell_marketbook:
-                if self.buy_limitbook[-1].size < self.sell_marketbook[-1].size:
-                    buy_order = self.buy_limitbook.pop()
-                    sell_order_orig = self.sell_marketbook[-1]
-                    # Update user objects here (account balances, etc)
-                    sell_order_filled = copy.copy(sell_order_orig)
-                    sell_order_filled.size = buy_order.size
-                    sell_order_orig.size -= buy_order.size
-                    buy_order.status = "Filled"
-                    sell_order_filled.status = "Filled Partial"
-                    sell_order_orig.status = "Open Partial"
-                    self.filled.append(buy_order)
-                    self.filled.append(sell_order_filled)
-                    self.last_price = buy_order.filled_price = sell_order_filled.filled_price = buy_order.limit
-                    buy_order.filled_time = sell_order_filled.filled_time = int(datetime.datetime.now().strftime('%s%f'))
-                    buy_order.filled_by = sell_order_filled
-                    sell_order_filled.filled_by = buy_order
-                elif self.buy_limitbook[-1].size == self.sell_marketbook[-1].size:
-                    buy_order = self.buy_limitbook.pop()
-                    sell_order = self.sell_marketbook.pop()
-                    # Update user objects here (account balances, etc)
-                    buy_order.status = "Filled"
-                    sell_order.status = "Filled"
-                    self.filled.append(buy_order)
-                    self.filled.append(sell_order)
-                    self.last_price = buy_order.filled_price = sell_order_filled.filled_price = buy_order.limit
-                    buy_order.filled_time = sell_order.filled_time = int(datetime.datetime.now().strftime('%s%f'))
-                    buy_order.filled_by = sell_order
-                    sell_order.filled_by = buy_order
-                elif self.buy_limitbook[-1].size > self.sell_marketbook[-1].size:
-                    buy_order = self.buy_limitbook[-1]
-                    sell_order = self.sell_marketbook.pop()
-                    # Update user objects here (account balances, etc)
-                    buy_order_filled = copy.copy(buy_order)
-                    buy_order_filled.size = sell_order.size
-                    buy_order.size -= sell_order.size
-                    buy_order_filled.status = "Filled Partial"
-                    buy_order.status = "Open Partial"
-                    sell_order.status = "Filled"
-                    self.filled.append(buy_order_filled)
-                    self.filled.append(sell_order)
-                    self.last_price = buy_order_filled.filled_price = sell_order.filled_price = buy_order.limit
-                    buy_order_filled.filled_time = sell_order.filled_time = int(datetime.datetime.now().strftime('%s%f'))
-                    buy_order_filled.filled_by = sell_order
-                    sell_order.filled_by = buy_order_filled
+                self.fill(self.buy_limitbook,self.sell_marketbook,self.buy_limitbook[-1].limit)
             elif self.sell_limitbook and self.buy_limitbook[-1].limit >= self.sell_limitbook[-1].limit:
-                if self.buy_limitbook[-1].size < self.sell_limitbook[-1].size:
-                    buy_order = self.buy_limitbook.pop()
-                    sell_order_orig = self.sell_limitbook[-1]
-                    # Update user objects here (account balances, etc)
-                    sell_order_filled = copy.copy(sell_order_orig)
-                    sell_order_filled.size = buy_order.size
-                    sell_order_orig.size -= buy_order.size
-                    buy_order.status = "Filled"
-                    sell_order_filled.status = "Filled Partial"
-                    sell_order_orig.status = "Open Partial"
-                    self.filled.append(buy_order)
-                    self.filled.append(sell_order_filled)
-                    if buy_order.submitted_time <= sell_order_orig.submitted_time:
-                        price = buy_order.limit
-                    else:
-                        price = sell_order.limit 
-                    self.last_price = buy_order.filled_price = sell_order_filled.filled_price = price
-                    buy_order.filled_time = sell_order_filled.filled_time = int(datetime.datetime.now().strftime('%s%f'))
-                    buy_order.filled_by = sell_order_filled
-                    sell_order_filled.filled_by = buy_order
-                elif self.buy_limitbook[-1].size == self.sell_limitbook[-1].size:
-                    buy_order = self.buy_limitbook.pop()
-                    sell_order = self.sell_limitbook.pop()
-                    # Update user objects here (account balances, etc)
-                    buy_order.status = "Filled"
-                    sell_order.status = "Filled"
-                    self.filled.append(buy_order)
-                    self.filled.append(sell_order)
-                    if buy_order.submitted_time <= sell_order.submitted_time:
-                        price = buy_order.limit
-                    else:
-                        price = sell_order.limit
-                    self.last_price = buy_order.filled_price = sell_order_filled.filled_price = price
-                    buy_order.filled_time = sell_order.filled_time = int(datetime.datetime.now().strftime('%s%f'))
-                    buy_order.filled_by = sell_order
-                    sell_order.filled_by = buy_order
-                elif self.buy_limitbook[-1].size > self.sell_limitbook[-1].size:
-                    buy_order = self.buy_limitbook[-1]
-                    sell_order = self.sell_limitbook.pop()
-                    # Update user objects here (account balances, etc)
-                    buy_order_filled = copy.copy(buy_order)
-                    buy_order_filled.size = sell_order.size
-                    buy_order.size -= sell_order.size
-                    buy_order_filled.status = "Filled Partial"
-                    buy_order.status = "Open Partial"
-                    sell_order.status = "Filled"
-                    self.filled.append(buy_order_filled)
-                    self.filled.append(sell_order)
-                    if buy_order.submitted_time <= sell_order.submitted_time:
-                        price = sell_order.limit
-                    else:
-                        price = buy_order.limit
-                    self.last_price = buy_order.filled_price = sell_order_filled.filled_price = price
-                    buy_order_filled.filled_time = sell_order.filled_time = int(datetime.datetime.now().strftime('%s%f'))
-                    buy_order_filled.filled_by = sell_order
-                    sell_order.filled_by = buy_order_filled
+                if self.buy_limitbook[-1].submitted_time <= self.sell_limitbook[-1].submitted_time:
+                    unitprice = self.buy_limitbook[-1].limit
+                else:
+                    unitprice = self.sell_limitbook[-1].limit 
+                self.fill(self.buy_limitbook,self.sell_limitbook,self.buy_limitbook[-1].limit)
 
 
 if __name__ == "__main__":
 
-    limit_order1 = LimitOrder(user="Abe",limit=10,size=7)
+    class User(object):
+        def __init__(self,id):
+            self.id = id
+
+    abe = User("Abe")
+    boaz = User("Boaz")
+    carol = User("Carol")
+    daisy = User("Daisy")
+    eve = User("Eve")
+    farah = User("Farah")
+    george = User("George")
+    helen = User("Helen")
+    jane = User("Jane")
+    kate = User("Kate")
+    lisa = User("Lisa")
+
+    limit_order1 = LimitOrder(user=abe,limit=10,size=7)
     print limit_order1
-    limit_order2 = LimitOrder(user="Boaz",limit=11.2,size=20)
-    limit_order3 = LimitOrder(user="Boaz",limit=9,size=20)
+    limit_order2 = LimitOrder(user=boaz,limit=11.2,size=20)
+    limit_order3 = LimitOrder(user=boaz,limit=9,size=20)
 
-    limit_order4 = LimitOrder(user="Jane",limit=5,size=2)
-    limit_order5 = LimitOrder(user="Kate",limit=15.2,size=2.5)
-    limit_order6 = LimitOrder(user="Lisa",limit=16,size=20)
+    limit_order4 = LimitOrder(user=jane,limit=5,size=2)
+    limit_order5 = LimitOrder(user=kate,limit=15.2,size=2.5)
+    limit_order6 = LimitOrder(user=lisa,limit=16,size=20)
 
-    market_order1 = MarketOrder(user="Abe",size=.3)
+    market_order1 = MarketOrder(user=abe,size=.3)
     print market_order1
-    market_order2 = MarketOrder(user="Boaz",size=5)
-    market_order3 = MarketOrder(user="Daisy",size=4)
-    market_order4 = MarketOrder(user="Carol",size=1)
+    market_order2 = MarketOrder(user=boaz,size=5)
+    market_order3 = MarketOrder(user=daisy,size=4)
+    market_order4 = MarketOrder(user=carol,size=1)
 
     limit_orderbook1 = BuyLimitOrderbook()
     limit_orderbook1.add(limit_order1)
@@ -381,17 +282,27 @@ if __name__ == "__main__":
     print market_orderbook1
 
     market_orderbook2 = MarketOrderbook()
-    market_order5 = MarketOrder(user="Eve",size=1.6)
-    market_order6 = MarketOrder(user="Farah",size=50)
-    market_order7 = MarketOrder(user="George",size=4)
-    market_order8 = MarketOrder(user="Helen",size=1)
+    market_order5 = MarketOrder(user=eve,size=1.6)
+    market_order6 = MarketOrder(user=farah,size=50)
+    market_order7 = MarketOrder(user=george,size=4)
+    market_order8 = MarketOrder(user=helen,size=1)
     market_orderbook2.add(market_order5)
     market_orderbook2.add(market_order6)
     market_orderbook2.add(market_order7)
     market_orderbook2.add(market_order8)
     print market_orderbook2
 
-    market = Market("Latinum", "Zorkmids", None)
+    def exchange_payment_dummy_function(*args):
+        return
+
+    class Asset(object):
+        def __init__(self,name):
+            self.name = name
+
+    latinum = Asset("LATINUM")
+    zorkmid = Asset("ZORKMID")
+
+    market = Market(exchange_payment_dummy_function, latinum, zorkmid)
     market.match()
     print market
 
