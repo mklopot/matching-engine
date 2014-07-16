@@ -3,34 +3,7 @@
 import datetime
 import copy
 
-class Order(object):
-    def __init__(self,user,size=1,assetname1=None,assetname2=None,ordertype=""):
-        self.user = user
-        self.num = None    #Order number is assigned when an order is accepted by a marketplace
-        self.size = size
-        self.assetname1 = str(assetname1)
-        self.assetname2 = str(assetname2)
-        self.ordertype = ordertype 
-        self.created_time = int(datetime.datetime.now().strftime('%s%f'))
-        self.submitted_time = False
-        self.status = "Not Submitted"
-        self.filled_time = None
-        self.filled_price = None
-        self.filled_by = None
-
-    def __str__(self):
-        return "{1.num} {0:12} {1.ordertype:4} {1.size:12.6f} {1.assetname1:12} for              {1.assetname2:12}  user:{1.user.id:10}  status:{1.status:16}  price:{1.filled_price:}".format(type(self).__name__,self)
-
-class LimitOrder(Order):
-    def __init__(self,user,limit,size=1,assetname1=None,assetname2=None,ordertype=""):
-        super(LimitOrder, self).__init__(user,size,assetname1,assetname2,ordertype)
-        self.limit = limit
-
-    def __str__(self):
-        return "{1.num} {0:12} {1.ordertype:4} {1.size:12.6f} {1.assetname1:12}  @  {1.limit:12.6f} {1.assetname2:12}  user:{1.user.id:10}  status:{1.status:16}  price:{1.filled_price:}".format(type(self).__name__,self)
-
-class MarketOrder(Order):
-    pass
+from order import *
 
 class Orderbook(list):
     def __str__(self):
@@ -39,7 +12,7 @@ class Orderbook(list):
             s = s + str(order) + "\n"
         return s
 
-class BuyLimitOrderbook(Orderbook):
+class LeftLimitOrderbook(Orderbook):
     def add(self,order):
         if order not in self:
             self.append(order)
@@ -47,7 +20,7 @@ class BuyLimitOrderbook(Orderbook):
             order.submitted_time = int(datetime.datetime.now().strftime('%s%f'))
             order.status = "Open Submitted"
 
-class SellLimitOrderbook(Orderbook):
+class RightLimitOrderbook(Orderbook):
     def add(self,order):
         if order not in self:
             self.append(order)
@@ -56,7 +29,7 @@ class SellLimitOrderbook(Orderbook):
             order.status = "Open Submitted"
     
 class MarketOrderbook(Orderbook):
-    """This class implements both BUY and SELL orederbooks for market orders. Market orders are ordered by time of submission"""
+    """This class implements both Right and Left orederbooks for market orders. Market orders are ordered by time of submission"""
 
     def add(self,order):
         if order not in self:
@@ -70,10 +43,10 @@ class Market(object):
         self.asset2 = asset2
         self.exchange_payment = exchange_payment    # Function to exchange assets between users when filling orders
 
-        self.sell_limitbook = SellLimitOrderbook()
-        self.buy_limitbook = BuyLimitOrderbook()
-        self.sell_marketbook = MarketOrderbook()
-        self.buy_marketbook = MarketOrderbook()
+        self.left_limitbook = LeftLimitOrderbook()
+        self.right_limitbook = RightLimitOrderbook()
+        self.left_marketbook = MarketOrderbook()
+        self.right_marketbook = MarketOrderbook()
         self.filled_orders = []
         self.cancelled_orders = []
 
@@ -87,17 +60,17 @@ class Market(object):
         x += "Cancelled Orders:\n"
         for order in self.cancelled_orders:
             x +=  str(order) + "\n"
-        return str(self.buy_marketbook) + str(self.sell_marketbook) + str(self.buy_limitbook) + str(self.sell_limitbook) + x
+        return str(self.left_marketbook) + str(self.right_marketbook) + str(self.left_limitbook) + str(self.right_limitbook) + x
 
     def get_orders_by_user(self,user):
         result = []
-        for orderbook in [self.sell_limitbook, self.buy_limitbook, self.sell_marketbook, self.buy_marketbook, self.filled_orders, self.cancelled_orders]:
+        for orderbook in [self.left_limitbook, self.right_limitbook, self.left_marketbook, self.right_marketbook, self.filled_orders, self.cancelled_orders]:
             result.extend([order for order in orderbook if order.user == user])
         return result
 
     def get_reference_price(self):
-        if self.sell_limitbook:
-            return self.sell_limitbook[-1].limit
+        if self.right_limitbook:
+            return self.right_limitbook[-1].limit
         elif self.last_price:
             return self.last_price
         elif self.preset_price:
@@ -105,36 +78,52 @@ class Market(object):
         else:
             return None
 
-    def submit_market_buy(self,order):
-        self.buy_marketbook.add(order)
+    def submit_market_left(self,order):
+        self.left_marketbook.add(order)
 
-    def submit_market_sell(self,order):
-        self.sell_marketbook.add(order)
+    def submit_market_right(self,order):
+        self.right_marketbook.add(order)
 
-    def submit_limit_buy(self,order):
-        self.buy_limitbook.add(order)
+    def submit_limit_left(self,order):
+        self.left_limitbook.add(order)
 
-    def submit_limit_sell(self,order):
-        self.sell_limitbook.add(order)
+    def submit_limit_right(self,order):
+        self.right_limitbook.add(order)
 
-    def submit_sell_order(self,order):
-        if isinstance(order,LimitOrder):
-            self.submit_limit_sell(order)
-        elif isinstance(order,MarketOrder):
-            self.submit_market_sell(order)
+    def submit_order(self,order):
+        if order.buy_assetname == self.asset1.name and order.sell_assetname == self.asset2.name:
+            if isinstance(order,LimitOrder):
+                if order.ordertype == "BUY":
+                    order.unitprice = order.limit
+                elif order.ordertype == "SELL":
+                    order.unitprice = 1 / order.limit
+                    print "Setting unitprice to {}".format(order.unitprice)
+                self.submit_limit_left(order)
+            elif isinstance(order,MarketOrder):
+                self.submit_market_left(order)
+            else:
+                raise TypeError("Unsupported Order Type: {}".format(ordertype))
+        elif order.buy_assetname == self.asset2.name and order.sell_assetname == self.asset1.name:
+            if isinstance(order,LimitOrder):
+                if order.ordertype == "SELL":
+                    order.unitprice = order.limit
+                elif order.ordertype == "BUY":
+                    order.unitprice = 1 / order.limit
+                    print "Setting unitprice to {}".format(order.unitprice)
+                self.submit_limit_right(order)
+            elif isinstance(order,MarketOrder):
+                self.submit_market_right(order)
+            else:
+                raise TypeError("Unsupported Order Type: {}".format(ordertype))
         else:
-            raise TypeError("Unsupported Order Type: {}".format(ordertype))
-
-    def submit_buy_order(self,order):
-        if isinstance(order,LimitOrder):
-            self.submit_limit_buy(order)
-        elif isinstance(order,MarketOrder):
-            self.submit_market_buy(order)
-        else:
-            raise TypeError("Unsupported Order Type: {}".format(ordertype))
+            print self.asset1, self.asset2
+            print order.buy_assetname, order.sell_assetname
+            order.status = "Misrouted"
+            self.cancelled_orders.append(order)
+        print self
  
     def cancel_order(self,order_num,user):
-        for orderbook in [self.sell_limitbook, self.buy_limitbook, self.sell_marketbook, self.buy_marketbook]:
+        for orderbook in [self.left_limitbook, self.left_limitbook, self.right_marketbook, self.right_marketbook]:
             orders_to_cancel = [order for order in orderbook if order.user == user and order.num == order_num]
             if orders_to_cancel:
                 for order in orders_to_cancel:
@@ -143,59 +132,70 @@ class Market(object):
                     order.status = "Cancelled by User"
                 return True
 
-    def insufficient_funds(self,buy_orderbook,sell_orderbook,insufficient_funds_list):
-        buy_order = buy_orderbook[-1]
-        sell_order = sell_orderbook[-1]
-        if buy_order.user in insufficient_funds_list:
-            buy_order.status = "Insufficient Funds"
-            self.cancelled_orders.append(buy_orderbook.pop())
-        elif sell_order.user in insufficient_funds_list:
-            sell_order.status = "Insufficient Funds"
-            self.cancelled_orders.append(sell_orderbook.pop())
+    def insufficient_funds(self,left_order,right_order,left_orderbook,right_orderbook,insufficient_funds_list):
+        print "Insufficient funds"
+        if left_order.user in insufficient_funds_list:
+            left_order.status = "Insufficient Funds"
+            left_orderbook.remove(left_order)
+            self.cancelled_orders.append(left_order)
+        elif right_order.user in insufficient_funds_list:
+            right_order.status = "Insufficient Funds"
+            right_orderbook.remove(right_order)
+            self.cancelled_orders.append(right_order)
 
-    def fill(self,buy_orderbook,sell_orderbook,unitprice):
-        buy_order = buy_orderbook[-1]
-        sell_order = sell_orderbook[-1]
-        if buy_order.size == sell_order.size:
-            insufficient_funds_list = self.exchange_payment(buy_order.user,self.asset2.name,unitprice*buy_order.size,sell_order.user,self.asset1.name,buy_order.size)
-            if insufficient_funds_list: self.insufficient_funds(buy_orderbook,sell_orderbook,insufficient_funds_list); return
-            buy_order = self.buy_marketbook.pop()
-            sell_order = self.sell_marketbook.pop()
-            buy_order.status = "Filled"
-            sell_order.status = "Filled"
-            self.filled.append(buy_order)
-            self.filled.append(sell_order)
-            buy_order.filled_time = sell_order.filled_time = int(datetime.datetime.now().strftime('%s%f'))
-            buy_order.filled_by = sell_order
-            sell_order.filled_by = buy_order
-            self.last_price = smaller_order.filled_price = bigger_order.filled_price = unitprice
+    def fill(self,left_orderbook,right_orderbook,unitprice):
+        print "About to fill() at unitprice {}".format(unitprice)
+        left_order = left_orderbook[-1]
+        right_order = right_orderbook[-1]
+        if not left_order.buy_amount: 
+            left_order.buy_amount = left_order.sell_amount / unitprice 
+            print left_order.buy_amount
+        if not left_order.sell_amount: 
+            left_order.sell_amount = left_order.buy_amount * unitprice 
+            left_order.sell_amount
+        if not right_order.buy_amount: 
+            right_order.buy_amount = right_order.sell_amount * unitprice 
+        if not right_order.sell_amount: 
+            right_order.sell_amount = right_order.buy_amount / unitprice 
+
+        if left_order.buy_amount == right_order.sell_amount:
+            insufficient_funds_list = self.exchange_payment(left_order.user,self.asset2.name,unitprice*left_order.buy_amount,right_order.user,self.asset1.name,left_order.buy_amount)
+            if insufficient_funds_list: self.insufficient_funds(left_order,right_order,left_orderbook,right_orderbook,insufficient_funds_list); return
+            left_orderbook.remove(left_order)
+            right_orderbook.remove(right_order)
+            left_order.status = "Filled"
+            right_order.status = "Filled"
+            self.filled_orders.append(left_order)
+            self.filled_orders.append(right_order)
+            left_order.filled_time = right_order.filled_time = int(datetime.datetime.now().strftime('%s%f'))
+            left_order.filled_by = right_order
+            right_order.filled_by = left_order
+            self.last_price = left_order.filled_price = right_order.filled_price = unitprice
         else:
-            if buy_order.size < sell_order.size:
-                smaller_order = buy_order
-                smaller_order_orderbook = buy_orderbook
-                bigger_order = sell_order
-                bigger_order_orderbook = sell_orderbook
-            #    insufficient_funds_list = self.exchange_payment(buy_order.user,self.asset2.name,unitprice*buy_order.size,sell_order.user,self.asset1.name,buy_order.size)
-            #    if insufficient_funds_list: self.insufficient_funds(buy_orderbook,sell_orderbook,insufficient_funds_list); return 
-            elif buy_order.size > sell_order.size:
-                smaller_order = sell_order
-                smaller_order_orderbook = sell_orderbook
-                bigger_order = buy_order
-                bigger_order_orderbook = buy_orderbook
+            if left_order.buy_amount < right_order.sell_amount:
+                smaller_order = left_order
+                smaller_order_orderbook = left_orderbook
+                bigger_order = right_order
+                bigger_order_orderbook = right_orderbook
+            elif left_order.buy_amount > right_order.sell_amount:
+                smaller_order = right_order
+                smaller_order_orderbook = right_orderbook
+                bigger_order = left_order
+                bigger_order_orderbook = left_orderbook
 
-            print buy_order.user
-            print sell_order.user
-            print self.asset2.name
-            print self.asset1.name
-            print smaller_order.size
-            print unitprice * smaller_order.size
+            insufficient_funds_list = self.exchange_payment(bigger_order.user,self.asset2.name,smaller_order.buy_amount,smaller_order.user,self.asset1.name,smaller_order.sell_amount)
+            if insufficient_funds_list: self.insufficient_funds(left_order,right_order,left_orderbook,right_orderbook,insufficient_funds_list); return
 
-            insufficient_funds_list = self.exchange_payment(buy_order.user,self.asset2.name,unitprice*smaller_order.size,sell_order.user,self.asset1.name,smaller_order.size)
-            if insufficient_funds_list: self.insufficient_funds(buy_orderbook,sell_orderbook,insufficient_funds_list); return
-            smaller_order_orderbook.pop()
+            smaller_order_orderbook.remove(smaller_order)
             bigger_order_filled = copy.copy(bigger_order)
-            bigger_order_filled.size = smaller_order.size
-            bigger_order.size -= smaller_order.size
+            bigger_order_filled.buy_amount = smaller_order.sell_amount
+            bigger_order_filled.sell_amount = smaller_order.buy_amount
+            if bigger_order.ordertype == "BUY":
+                bigger_order.buy_amount -= smaller_order.sell_amount
+                bigger_order.sell_amount = None
+            elif bigger_order.ordertype == "SELL":
+                bigger_order.sell_amount -= smaller_order.buy_amount
+                bigger_order.buy_amount = None
             smaller_order.status = "Filled"
             bigger_order_filled.status = "Filled Partial"
             bigger_order.status = "Open Partial"
@@ -205,31 +205,35 @@ class Market(object):
             smaller_order.filled_by = bigger_order_filled
             bigger_order_filled.filled_by = smaller_order
             self.last_price = smaller_order.filled_price = bigger_order_filled.filled_price = unitprice
+
+        print self
              
 
 
     def match(self):
         ref_price = self.get_reference_price()
-        if self.buy_marketbook and not ref_price:
+        if self.left_marketbook and not ref_price:
             return
-        # Market orders on the BUY side get processed first
-        if self.buy_marketbook:
-            if self.sell_marketbook: 
-                self.fill(self.buy_marketbook,self.sell_marketbook,ref_price)
-            elif self.sell_limitbook:
-                self.fill(self.buy_marketbook,self.sell_limitbook,self.sell_limitbook[-1].limit)
-        elif self.buy_limitbook:
-            if self.sell_marketbook:
-                self.fill(self.buy_limitbook,self.sell_marketbook,self.buy_limitbook[-1].limit)
-            elif self.sell_limitbook and self.buy_limitbook[-1].limit >= self.sell_limitbook[-1].limit:
-                if self.buy_limitbook[-1].submitted_time <= self.sell_limitbook[-1].submitted_time:
-                    unitprice = self.buy_limitbook[-1].limit
+        # Market orders on the LEFT side get processed first
+        if self.left_marketbook:
+            if self.right_marketbook: 
+                self.fill(self.left_marketbook,self.right_marketbook,ref_price)
+            elif self.right_limitbook:
+                self.fill(self.left_marketbook,self.right_limitbook,self.right_limitbook[-1].unitprice)
+        elif self.left_limitbook:
+            if self.right_marketbook:
+                self.fill(self.left_limitbook,self.right_marketbook,self.left_limitbook[-1].unitprice)
+            elif self.right_limitbook and (self.left_limitbook[-1].unitprice >= self.right_limitbook[-1].unitprice):
+                if self.left_limitbook[-1].submitted_time <= self.right_limitbook[-1].submitted_time:
+                    unitprice = self.left_limitbook[-1].unitprice
                 else:
-                    unitprice = self.sell_limitbook[-1].limit 
-                self.fill(self.buy_limitbook,self.sell_limitbook,self.buy_limitbook[-1].limit)
+                    unitprice = self.right_limitbook[-1].unitprice 
+                self.fill(self.left_limitbook,self.right_limitbook,unitprice)
 
 
 if __name__ == "__main__":
+
+    from order import *
 
     class User(object):
         def __init__(self,id):
@@ -247,54 +251,6 @@ if __name__ == "__main__":
     kate = User("Kate")
     lisa = User("Lisa")
 
-    limit_order1 = LimitOrder(user=abe,limit=10,size=7)
-    print limit_order1
-    limit_order2 = LimitOrder(user=boaz,limit=11.2,size=20)
-    limit_order3 = LimitOrder(user=boaz,limit=9,size=20)
-
-    limit_order4 = LimitOrder(user=jane,limit=5,size=2)
-    limit_order5 = LimitOrder(user=kate,limit=15.2,size=2.5)
-    limit_order6 = LimitOrder(user=lisa,limit=16,size=20)
-
-    market_order1 = MarketOrder(user=abe,size=.3)
-    print market_order1
-    market_order2 = MarketOrder(user=boaz,size=5)
-    market_order3 = MarketOrder(user=daisy,size=4)
-    market_order4 = MarketOrder(user=carol,size=1)
-
-    limit_orderbook1 = BuyLimitOrderbook()
-    limit_orderbook1.add(limit_order1)
-    limit_orderbook1.add(limit_order2)
-    limit_orderbook1.add(limit_order3)
-    print limit_orderbook1
-
-    limit_orderbook2 = SellLimitOrderbook()
-    limit_orderbook2.add(limit_order4)
-    limit_orderbook2.add(limit_order5)
-    limit_orderbook2.add(limit_order6)
-    print limit_orderbook2
-
-    market_orderbook1 = MarketOrderbook()
-    market_orderbook1.add(market_order1)
-    market_orderbook1.add(market_order2)
-    market_orderbook1.add(market_order4)
-    market_orderbook1.add(market_order3)
-    print market_orderbook1
-
-    market_orderbook2 = MarketOrderbook()
-    market_order5 = MarketOrder(user=eve,size=1.6)
-    market_order6 = MarketOrder(user=farah,size=50)
-    market_order7 = MarketOrder(user=george,size=4)
-    market_order8 = MarketOrder(user=helen,size=1)
-    market_orderbook2.add(market_order5)
-    market_orderbook2.add(market_order6)
-    market_orderbook2.add(market_order7)
-    market_orderbook2.add(market_order8)
-    print market_orderbook2
-
-    def exchange_payment_dummy_function(*args):
-        return
-
     class Asset(object):
         def __init__(self,name):
             self.name = name
@@ -302,26 +258,44 @@ if __name__ == "__main__":
     latinum = Asset("LATINUM")
     zorkmid = Asset("ZORKMID")
 
+    limit_order1 = LimitOrder(user=abe,limit=10,buy_amount=7)
+    limit_order2 = LimitOrder(user=boaz,limit=11.2,buy_amount=20)
+    limit_order3 = LimitOrder(user=boaz,limit=9,buy_amount=20)
+    limit_order4 = LimitOrder(user=jane,limit=5,sell_amount=2)
+    limit_order5 = LimitOrder(user=kate,limit=15.2,sell_amount=2.5)
+    limit_order6 = LimitOrder(user=lisa,limit=16,sell_amount=20)
+    market_order1 = MarketOrder(user=abe,buy_amount=.3)
+    market_order2 = MarketOrder(user=boaz,buy_amount=5)
+    market_order3 = MarketOrder(user=daisy,buy_amount=4)
+    market_order4 = MarketOrder(user=carol,buy_amount=1)
+    market_order5 = MarketOrder(user=eve,sell_amount=1.6)
+    market_order6 = MarketOrder(user=farah,sell_amount=50)
+    market_order7 = MarketOrder(user=george,sell_amount=4)
+    market_order8 = MarketOrder(user=helen,sell_amount=1)
+
+    def exchange_payment_dummy_function(*args):
+        return
+
     market = Market(exchange_payment_dummy_function, latinum, zorkmid)
     market.match()
     print market
 
-    market.submit_limit_buy(limit_order1)
-    market.submit_limit_buy(limit_order2)
-    market.submit_limit_buy(limit_order3)
-    market.submit_limit_sell(limit_order4)
-    market.submit_limit_sell(limit_order5)
-    market.submit_limit_sell(limit_order6)
+    market.submit_order(limit_order1)
+    market.submit_order(limit_order2)
+    market.submit_order(limit_order3)
+    market.submit_order(limit_order4)
+    market.submit_order(limit_order5)
+    market.submit_order(limit_order6)
 
-    market.submit_market_buy(market_order1)
-    market.submit_market_buy(market_order2)
-    market.submit_market_buy(market_order4)
-    market.submit_market_buy(market_order3)
+    market.submit_order(market_order1)
+    market.submit_order(market_order2)
+    market.submit_order(market_order4)
+    market.submit_order(market_order3)
 
-    market.submit_market_sell(market_order5)
-    market.submit_market_sell(market_order6)
-    market.submit_market_sell(market_order7)
-    market.submit_market_sell(market_order8)
+    market.submit_order(market_order5)
+    market.submit_order(market_order6)
+    market.submit_order(market_order7)
+    market.submit_order(market_order8)
     
     print market
     

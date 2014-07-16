@@ -34,5 +34,15 @@ if __name__ == "__main__":
 
     # Create the server, binding to localhost on port 9999
     server = ThreadedTCPServer((HOST, PORT), MyTCPHandler)
-    server.serve_forever()
+    print "Starting server..."
 
+    tcp_thread = threading.Thread(target=server.serve_forever)
+    tcp_thread.daemon = True
+    tcp_thread.start()
+
+#    i = 0
+    while True:
+#        print i; i+=1
+        marketplace_instance()
+#        for m in marketplace_instance.markets:
+#            print m

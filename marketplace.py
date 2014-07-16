@@ -31,6 +31,9 @@ class Marketplace(object):
 
         self.order_num = ordernum_generator(69105)
 
+    def __call__(self):
+        for market_instance in self.markets:
+            market_instance.match()
 
     def get_user_by_userid(self,user_id,supplied_password):
         user = self.dbsession.query(model.User).filter(model.User.id == user_id).scalar()
@@ -39,20 +42,19 @@ class Marketplace(object):
         else:
             return False
 
-    def submit_buy_order(self,order):
-        assetname1 = order.assetname1
-        assetname2 = order.assetname2
+    def submit_order(self,order):
+        assetname1 = order.buy_assetname
+        assetname2 = order.sell_assetname
         if order.num:
             print "Attempting to submit an order that already has a number assigned. Rejecting..."
             return
         if (assetname1,assetname2) in self.markets_hash:
             targetmarket = self.markets_hash[(assetname1,assetname2)]
-            targetmarket.submit_buy_order(order)
+            targetmarket.submit_order(order)
             order.num = self.order_num.next()            
         elif (assetname1,assetname2) in self.markets_hash_reverse:
-        # Since assets are reversed, BUY becomes SELL
             targetmarket = self.markets_hash_reverse[(assetname1,assetname2)]
-            targetmarket.submit_sell_order(order)
+            targetmarket.submit_order(order)
             order.num = self.order_num.next()            
         else:
             print "Failed to find a market that trades the same assets as the incoming order"
