@@ -96,7 +96,7 @@ class Market(object):
                 if order.ordertype == "BUY":
                     order.unitprice = order.limit
                 elif order.ordertype == "SELL":
-                    order.unitprice = 1 / order.limit
+                    order.unitprice = 1.0 / order.limit
                     print "Setting unitprice to {}".format(order.unitprice)
                 self.submit_limit_left(order)
             elif isinstance(order,MarketOrder):
@@ -108,7 +108,7 @@ class Market(object):
                 if order.ordertype == "SELL":
                     order.unitprice = order.limit
                 elif order.ordertype == "BUY":
-                    order.unitprice = 1 / order.limit
+                    order.unitprice = 1.0 / order.limit
                     print "Setting unitprice to {}".format(order.unitprice)
                 self.submit_limit_right(order)
             elif isinstance(order,MarketOrder):
