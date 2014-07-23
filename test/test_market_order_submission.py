@@ -1,22 +1,11 @@
 from .. import market
 from .. import order
 
-
 class User(object):
     def __init__(self,id):
         self.id = id
 
 abe = User("Abe")
-boaz = User("Boaz")
-carol = User("Carol")
-daisy = User("Daisy")
-eve = User("Eve")
-farah = User("Farah")
-george = User("George")
-helen = User("Helen")
-jane = User("Jane")
-kate = User("Kate")
-lisa = User("Lisa")
 
 class Asset(object):
     def __init__(self,name):
@@ -25,45 +14,302 @@ class Asset(object):
 latinum = Asset("LATINUM")
 zorkmid = Asset("ZORKMID")
 
-limit_order1 = order.LimitOrder(user=abe,limit=10,buy_amount=7)
-limit_order2 = order.LimitOrder(user=boaz,limit=11.2,buy_amount=20)
-limit_order3 = order.LimitOrder(user=boaz,limit=9,buy_amount=20)
-limit_order4 = order.LimitOrder(user=jane,limit=5,sell_amount=2)
-limit_order5 = order.LimitOrder(user=kate,limit=15.2,sell_amount=2.5)
-limit_order6 = order.LimitOrder(user=lisa,limit=16,sell_amount=20)
-market_order1 = order.MarketOrder(user=abe,buy_amount=.3)
-market_order2 = order.MarketOrder(user=boaz,buy_amount=5)
-market_order3 = order.MarketOrder(user=daisy,buy_amount=4)
-market_order4 = order.MarketOrder(user=carol,buy_amount=1)
-market_order5 = order.MarketOrder(user=eve,sell_amount=1.6)
-market_order6 = order.MarketOrder(user=farah,sell_amount=50)
-market_order7 = order.MarketOrder(user=george,sell_amount=4)
-market_order8 = order.MarketOrder(user=helen,sell_amount=1)
-
 def exchange_payment_dummy_function(*args):
     return
 
-def test_market():
-    """Instantiate a market object, invoke its match() method, and submit some orders"""
 
-    m = market.Market(exchange_payment_dummy_function, latinum, zorkmid)
-    m.match()
-    print market
+class Test_Market_Submit():
+    def setup(self):
+        self.m = market.Market(exchange_payment_dummy_function, latinum, zorkmid)
 
-    m.submit_order(limit_order1)
-    m.submit_order(limit_order2)
-    m.submit_order(limit_order3)
-    m.submit_order(limit_order4)
-    m.submit_order(limit_order5)
-    m.submit_order(limit_order6)
+    def test_submit_market_buy(self):
+        """Submit a market BUY order"""
 
-    m.submit_order(market_order1)
-    m.submit_order(market_order2)
-    m.submit_order(market_order4)
-    m.submit_order(market_order3)
+        order1 = order.MarketOrder(user=abe,buy_assetname="LATINUM",buy_amount=7,sell_assetname="ZORKMID")
+        order1.num = 1
 
-    m.submit_order(market_order5)
-    m.submit_order(market_order6)
-    m.submit_order(market_order7)
-    m.submit_order(market_order8)
+        self.m.submit_order(order1)
+        assert order1 in self.m.left_marketbook
+        assert self.m.left_marketbook.count(order1) == 1
+        assert order1 not in self.m.right_marketbook
+        assert order1 not in self.m.left_limitbook
+        assert order1 not in self.m.right_limitbook
+        assert order1 not in self.m.filled_orders
+        assert order1 not in self.m.cancelled_orders
+        assert self.m.get_orders_by_user(abe) == [order1]
+
+        self.m.submit_order(order1)    # The duplicate submission should get thrown away
+        assert order1 in self.m.left_marketbook
+        assert self.m.left_marketbook.count(order1) == 1
+        assert order1 not in self.m.right_marketbook
+        assert order1 not in self.m.left_limitbook
+        assert order1 not in self.m.right_limitbook
+        assert order1 not in self.m.filled_orders
+        assert order1 not in self.m.cancelled_orders
+
+        self.m.cancel_order(1,abe)
+        assert order1 not in self.m.left_marketbook
+        assert order1 not in self.m.right_marketbook
+        assert order1 not in self.m.left_limitbook
+        assert order1 not in self.m.right_limitbook
+        assert order1 not in self.m.filled_orders
+        assert order1 in self.m.cancelled_orders
+        assert self.m.cancelled_orders.count(order1) == 1
+        assert self.m.get_orders_by_user(abe) == [order1]
+
+
+    def test_submit_market_reverse_buy(self):
+        """Submit a market BUY order with assets reversed"""
+
+        order1 = order.MarketOrder(user=abe,buy_assetname="ZORKMID",buy_amount=7,sell_assetname="LATINUM")
+        order1.num = 1
+
+        self.m.submit_order(order1)
+        assert order1 in self.m.right_marketbook
+        assert self.m.right_marketbook.count(order1) == 1
+        assert order1 not in self.m.left_marketbook
+        assert order1 not in self.m.left_limitbook
+        assert order1 not in self.m.right_limitbook
+        assert order1 not in self.m.filled_orders
+        assert order1 not in self.m.cancelled_orders
+        assert self.m.get_orders_by_user(abe) == [order1]
+
+        self.m.submit_order(order1)    # The duplicate submission should get thrown away
+        assert order1 in self.m.right_marketbook
+        assert self.m.right_marketbook.count(order1) == 1
+        assert order1 not in self.m.left_marketbook
+        assert order1 not in self.m.left_limitbook
+        assert order1 not in self.m.right_limitbook
+        assert order1 not in self.m.filled_orders
+        assert order1 not in self.m.cancelled_orders
+
+        self.m.cancel_order(1,abe)
+        assert order1 not in self.m.left_marketbook
+        assert order1 not in self.m.right_marketbook
+        assert order1 not in self.m.left_limitbook
+        assert order1 not in self.m.right_limitbook
+        assert order1 not in self.m.filled_orders
+        assert order1 in self.m.cancelled_orders
+        assert self.m.cancelled_orders.count(order1) == 1
+        assert self.m.get_orders_by_user(abe) == [order1]
+
+    def test_submit_market_sell(self):
+        """Submit a market SELL order"""
+
+        order1 = order.MarketOrder(user=abe,buy_assetname="LATINUM",sell_amount=7,sell_assetname="ZORKMID")
+        order1.num = 1
+
+        self.m.submit_order(order1)
+        assert order1 in self.m.left_marketbook
+        assert self.m.left_marketbook.count(order1) == 1
+        assert order1 not in self.m.right_marketbook
+        assert order1 not in self.m.left_limitbook
+        assert order1 not in self.m.right_limitbook
+        assert order1 not in self.m.filled_orders
+        assert order1 not in self.m.cancelled_orders
+        assert self.m.get_orders_by_user(abe) == [order1]
+
+        self.m.submit_order(order1)    # The duplicate submission should get thrown away
+        assert order1 in self.m.left_marketbook
+        assert self.m.left_marketbook.count(order1) == 1
+        assert order1 not in self.m.right_marketbook
+        assert order1 not in self.m.left_limitbook
+        assert order1 not in self.m.right_limitbook
+        assert order1 not in self.m.filled_orders
+        assert order1 not in self.m.cancelled_orders
+
+        self.m.cancel_order(1,abe)
+        assert order1 not in self.m.left_marketbook
+        assert order1 not in self.m.right_marketbook
+        assert order1 not in self.m.left_limitbook
+        assert order1 not in self.m.right_limitbook
+        assert order1 not in self.m.filled_orders
+        assert order1 in self.m.cancelled_orders
+        assert self.m.cancelled_orders.count(order1) == 1
+        assert self.m.get_orders_by_user(abe) == [order1]
+
+
+    def test_submit_market_reverse_sell(self):
+        """Submit a market SELL order with assets reversed"""
+
+        order1 = order.MarketOrder(user=abe,buy_assetname="ZORKMID",sell_amount=7,sell_assetname="LATINUM")
+        order1.num = 1
+
+        self.m.submit_order(order1)
+        assert order1 in self.m.right_marketbook
+        assert self.m.right_marketbook.count(order1) == 1
+        assert order1 not in self.m.left_marketbook
+        assert order1 not in self.m.left_limitbook
+        assert order1 not in self.m.right_limitbook
+        assert order1 not in self.m.filled_orders
+        assert order1 not in self.m.cancelled_orders
+        assert self.m.get_orders_by_user(abe) == [order1]
+
+        self.m.submit_order(order1)    # The duplicate submission should get thrown away
+        assert order1 in self.m.right_marketbook
+        assert self.m.right_marketbook.count(order1) == 1
+        assert order1 not in self.m.left_marketbook
+        assert order1 not in self.m.left_limitbook
+        assert order1 not in self.m.right_limitbook
+        assert order1 not in self.m.filled_orders
+        assert order1 not in self.m.cancelled_orders
+
+        self.m.cancel_order(1,abe)
+        assert order1 not in self.m.left_marketbook
+        assert order1 not in self.m.right_marketbook
+        assert order1 not in self.m.left_limitbook
+        assert order1 not in self.m.right_limitbook
+        assert order1 not in self.m.filled_orders
+        assert order1 in self.m.cancelled_orders
+        assert self.m.cancelled_orders.count(order1) == 1
+        assert self.m.get_orders_by_user(abe) == [order1]
+
+
+    def test_submit_limit_buy(self):
+        """Submit a limit BUY order"""
+
+        order1 = order.LimitOrder(user=abe,buy_assetname="LATINUM",buy_amount=7,sell_assetname="ZORKMID",limit=8)
+        order1.num = 1
+
+        self.m.submit_order(order1)
+        assert order1 in self.m.left_limitbook
+        assert order1.unitprice == 8
+        assert self.m.left_limitbook.count(order1) == 1
+        assert order1 not in self.m.right_limitbook
+        assert order1 not in self.m.left_marketbook
+        assert order1 not in self.m.right_marketbook
+        assert order1 not in self.m.filled_orders
+        assert order1 not in self.m.cancelled_orders
+        assert self.m.get_orders_by_user(abe) == [order1]
+
+        self.m.submit_order(order1)    # The duplicate submission should get thrown away
+        assert order1 in self.m.left_limitbook
+        assert self.m.left_limitbook.count(order1) == 1
+        assert order1 not in self.m.right_limitbook
+        assert order1 not in self.m.left_marketbook
+        assert order1 not in self.m.right_marketbook
+        assert order1 not in self.m.filled_orders
+        assert order1 not in self.m.cancelled_orders
+
+        self.m.cancel_order(1,abe)
+        assert order1 not in self.m.left_marketbook
+        assert order1 not in self.m.right_marketbook
+        assert order1 not in self.m.left_limitbook
+        assert order1 not in self.m.right_limitbook
+        assert order1 not in self.m.filled_orders
+        assert order1 in self.m.cancelled_orders
+        assert self.m.cancelled_orders.count(order1) == 1
+        assert self.m.get_orders_by_user(abe) == [order1]
+
+
+    def test_submit_limit_reverse_buy(self):
+        """Submit a limit BUY order with assets reversed"""
+
+        order1 = order.LimitOrder(user=abe,buy_assetname="ZORKMID",buy_amount=7,sell_assetname="LATINUM",limit=8)
+        order1.num = 1
+
+        self.m.submit_order(order1)
+        assert order1 in self.m.right_limitbook
+        assert order1.unitprice == .125
+        assert self.m.right_limitbook.count(order1) == 1
+        assert order1 not in self.m.left_limitbook
+        assert order1 not in self.m.left_marketbook
+        assert order1 not in self.m.right_marketbook
+        assert order1 not in self.m.filled_orders
+        assert order1 not in self.m.cancelled_orders
+        assert self.m.get_orders_by_user(abe) == [order1]
+
+        self.m.submit_order(order1)    # The duplicate submission should get thrown away
+        assert order1 in self.m.right_limitbook
+        assert order1.unitprice == .125
+        assert self.m.right_limitbook.count(order1) == 1
+        assert order1 not in self.m.left_limitbook
+        assert order1 not in self.m.left_marketbook
+        assert order1 not in self.m.right_marketbook
+        assert order1 not in self.m.filled_orders
+        assert order1 not in self.m.cancelled_orders
+
+        self.m.cancel_order(1,abe)
+        assert order1 not in self.m.left_marketbook
+        assert order1 not in self.m.right_marketbook
+        assert order1 not in self.m.left_limitbook
+        assert order1 not in self.m.right_limitbook
+        assert order1 not in self.m.filled_orders
+        assert order1 in self.m.cancelled_orders
+        assert self.m.cancelled_orders.count(order1) == 1
+        assert self.m.get_orders_by_user(abe) == [order1]
+
+
+    def test_submit_limit_sell(self):
+        """Submit a limit SELL order"""
+
+        order1 = order.LimitOrder(user=abe,buy_assetname="LATINUM",sell_amount=7,sell_assetname="ZORKMID",limit=8)
+        order1.num = 1
+
+        self.m.submit_order(order1)
+        assert order1 in self.m.left_limitbook
+        assert order1.unitprice == .125
+        assert self.m.left_limitbook.count(order1) == 1
+        assert order1 not in self.m.right_limitbook
+        assert order1 not in self.m.left_marketbook
+        assert order1 not in self.m.right_marketbook
+        assert order1 not in self.m.filled_orders
+        assert order1 not in self.m.cancelled_orders
+        assert self.m.get_orders_by_user(abe) == [order1]
+
+        self.m.submit_order(order1)    # The duplicate submission should get thrown away
+        assert order1 in self.m.left_limitbook
+        assert self.m.left_limitbook.count(order1) == 1
+        assert order1 not in self.m.right_limitbook
+        assert order1 not in self.m.left_marketbook
+        assert order1 not in self.m.right_marketbook
+        assert order1 not in self.m.filled_orders
+        assert order1 not in self.m.cancelled_orders
+
+        self.m.cancel_order(1,abe)
+        assert order1 not in self.m.left_marketbook
+        assert order1 not in self.m.right_marketbook
+        assert order1 not in self.m.left_limitbook
+        assert order1 not in self.m.right_limitbook
+        assert order1 not in self.m.filled_orders
+        assert order1 in self.m.cancelled_orders
+        assert self.m.cancelled_orders.count(order1) == 1
+        assert self.m.get_orders_by_user(abe) == [order1]
+
+
+    def test_submit_limit_reverse_sell(self):
+        """Submit a limit SELL order with assets reversed"""
+
+        order1 = order.LimitOrder(user=abe,buy_assetname="ZORKMID",sell_amount=7,sell_assetname="LATINUM",limit=8)
+        order1.num = 1
+
+        self.m.submit_order(order1)
+        assert order1 in self.m.right_limitbook
+        assert order1.unitprice == 8
+        assert self.m.right_limitbook.count(order1) == 1
+        assert order1 not in self.m.left_limitbook
+        assert order1 not in self.m.left_marketbook
+        assert order1 not in self.m.right_marketbook
+        assert order1 not in self.m.filled_orders
+        assert order1 not in self.m.cancelled_orders
+        assert self.m.get_orders_by_user(abe) == [order1]
+
+        self.m.submit_order(order1)    # The duplicate submission should get thrown away
+        assert order1 in self.m.right_limitbook
+        assert self.m.right_limitbook.count(order1) == 1
+        assert order1 not in self.m.left_limitbook
+        assert order1 not in self.m.left_marketbook
+        assert order1 not in self.m.right_marketbook
+        assert order1 not in self.m.filled_orders
+        assert order1 not in self.m.cancelled_orders
+
+        self.m.cancel_order(1,abe)
+        assert order1 not in self.m.left_marketbook
+        assert order1 not in self.m.right_marketbook
+        assert order1 not in self.m.left_limitbook
+        assert order1 not in self.m.right_limitbook
+        assert order1 not in self.m.filled_orders
+        assert order1 in self.m.cancelled_orders
+        assert self.m.cancelled_orders.count(order1) == 1
+        assert self.m.get_orders_by_user(abe) == [order1]
 
