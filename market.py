@@ -123,7 +123,7 @@ class Market(object):
         print self
  
     def cancel_order(self,order_num,user):
-        for orderbook in [self.left_limitbook, self.left_limitbook, self.right_marketbook, self.right_marketbook]:
+        for orderbook in [self.left_limitbook, self.right_limitbook, self.left_marketbook, self.right_marketbook]:
             orders_to_cancel = [order for order in orderbook if order.user == user and order.num == order_num]
             if orders_to_cancel:
                 for order in orders_to_cancel:
