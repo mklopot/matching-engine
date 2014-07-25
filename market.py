@@ -102,7 +102,7 @@ class Market(object):
             elif isinstance(order,MarketOrder):
                 self.submit_market_left(order)
             else:
-                raise TypeError("Unsupported Order Type: {}".format(ordertype))
+                raise TypeError("Unsupported Order Type: {}".format(type(order)))
         elif order.buy_assetname == self.asset2.name and order.sell_assetname == self.asset1.name:
             if isinstance(order,LimitOrder):
                 if order.ordertype == "SELL":
@@ -114,7 +114,7 @@ class Market(object):
             elif isinstance(order,MarketOrder):
                 self.submit_market_right(order)
             else:
-                raise TypeError("Unsupported Order Type: {}".format(ordertype))
+                raise TypeError("Unsupported Order Type: {}".format(type(order)))
         else:
             print self.asset1, self.asset2
             print order.buy_assetname, order.sell_assetname
@@ -206,10 +206,6 @@ class Market(object):
             bigger_order_filled.filled_by = smaller_order
             self.last_price = smaller_order.filled_price = bigger_order_filled.filled_price = unitprice
 
-        print self
-             
-
-
     def match(self):
         ref_price = self.get_reference_price()
         if self.left_marketbook and not ref_price:
@@ -230,77 +226,4 @@ class Market(object):
                     unitprice = self.right_limitbook[-1].unitprice 
                 self.fill(self.left_limitbook,self.right_limitbook,unitprice)
 
-
-if __name__ == "__main__":
-
-    from order import *
-
-    class User(object):
-        def __init__(self,id):
-            self.id = id
-
-    abe = User("Abe")
-    boaz = User("Boaz")
-    carol = User("Carol")
-    daisy = User("Daisy")
-    eve = User("Eve")
-    farah = User("Farah")
-    george = User("George")
-    helen = User("Helen")
-    jane = User("Jane")
-    kate = User("Kate")
-    lisa = User("Lisa")
-
-    class Asset(object):
-        def __init__(self,name):
-            self.name = name
-
-    latinum = Asset("LATINUM")
-    zorkmid = Asset("ZORKMID")
-
-    limit_order1 = LimitOrder(user=abe,limit=10,buy_amount=7)
-    limit_order2 = LimitOrder(user=boaz,limit=11.2,buy_amount=20)
-    limit_order3 = LimitOrder(user=boaz,limit=9,buy_amount=20)
-    limit_order4 = LimitOrder(user=jane,limit=5,sell_amount=2)
-    limit_order5 = LimitOrder(user=kate,limit=15.2,sell_amount=2.5)
-    limit_order6 = LimitOrder(user=lisa,limit=16,sell_amount=20)
-    market_order1 = MarketOrder(user=abe,buy_amount=.3)
-    market_order2 = MarketOrder(user=boaz,buy_amount=5)
-    market_order3 = MarketOrder(user=daisy,buy_amount=4)
-    market_order4 = MarketOrder(user=carol,buy_amount=1)
-    market_order5 = MarketOrder(user=eve,sell_amount=1.6)
-    market_order6 = MarketOrder(user=farah,sell_amount=50)
-    market_order7 = MarketOrder(user=george,sell_amount=4)
-    market_order8 = MarketOrder(user=helen,sell_amount=1)
-
-    def exchange_payment_dummy_function(*args):
-        return
-
-    market = Market(exchange_payment_dummy_function, latinum, zorkmid)
-    market.match()
-    print market
-
-    market.submit_order(limit_order1)
-    market.submit_order(limit_order2)
-    market.submit_order(limit_order3)
-    market.submit_order(limit_order4)
-    market.submit_order(limit_order5)
-    market.submit_order(limit_order6)
-
-    market.submit_order(market_order1)
-    market.submit_order(market_order2)
-    market.submit_order(market_order4)
-    market.submit_order(market_order3)
-
-    market.submit_order(market_order5)
-    market.submit_order(market_order6)
-    market.submit_order(market_order7)
-    market.submit_order(market_order8)
-    
-    print market
-    
-    while True:
-        raw_input("press Enter to step...\n")
-        market.match()
-        print market
 
